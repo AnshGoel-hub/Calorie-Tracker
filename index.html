@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calorie Tracker</title>
+<script>try{var t=localStorage.getItem("ct-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f6f7;--pn:#e9edf0;--card:#fff;--tx:#15181c;--mu:#5d6670;--bd:#d6dbe0;--ac:#f2b705;--on:#1a1400;--bad:#cf3f2b;--k:#d99a00;--p:#3d4fb5;--c:#c98a00;--f:#8e4a9e;--wt:#1f8a70;--wa:#2a8fc7;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#12151a;--pn:#1a1f26;--card:#1f252d;--tx:#e9edf1;--mu:#9aa5b1;--bd:#2b323b;--ac:#f2b705;--bad:#f0705c;--k:#f2b705;--p:#8b99f5;--c:#efb83a;--f:#c58bd6;--wt:#4cc2a1;--wa:#5ab6ea}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#12151a;--pn:#1a1f26;--card:#1f252d;--tx:#e9edf1;--mu:#9aa5b1;--bd:#2b323b;--ac:#f2b705;--bad:#f0705c;--k:#f2b705;--p:#8b99f5;--c:#efb83a;--f:#c58bd6;--wt:#4cc2a1;--wa:#5ab6ea}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 "Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums}
+.w{max-width:1120px;margin:0 auto;padding:20px 18px 40px}
+h1{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0}h2{font-size:18px;font-weight:650;margin:0 0 14px}h3{font-size:13px;margin:0 0 6px;color:var(--mu);font-weight:500}
+.top{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end;padding-bottom:18px}
+.sub{color:var(--mu);font-size:13px}
+.tgt{display:flex;align-items:center;gap:8px;color:var(--mu);font-size:13px}.tgt input{width:92px;text-align:right;font-weight:600}.tgt #theme{margin-left:10px;white-space:nowrap}
+input,select,button{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:8px 10px;min-width:0}
+input,select{width:100%}input:focus,select:focus,button:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+button{cursor:pointer}button:hover{border-color:var(--mu)}
+button.pri{background:var(--ac);border-color:var(--ac);color:var(--on);font-weight:700}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.row>.fx{flex:0 0 auto}
+label{display:block;font-size:12.5px;color:var(--mu);margin:12px 0 4px}
+.seg{display:flex;border:1px solid var(--bd);border-radius:6px;overflow:hidden}.seg label{flex:1;margin:0;color:var(--tx);padding:7px;text-align:center;cursor:pointer;font-size:14px;background:var(--card)}
+.seg input{display:none}.seg label:has(input:checked){background:var(--tx);color:var(--bg);font-weight:600}
+.pv{margin:12px 0;padding:9px 0;border-top:1px dashed var(--bd);border-bottom:1px dashed var(--bd);font-size:13.5px;color:var(--mu);min-height:40px}
+.main{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);border-top:2px solid var(--tx)}
+.today{background:var(--pn);padding:22px 22px 16px}.add{padding:22px 0 22px 28px}
+.nav{display:flex;align-items:center;gap:8px}.nav #dl{flex:1;text-align:center;font-weight:600}
+.dates{display:flex;gap:8px;margin:10px 0 18px}
+.ringwrap{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+#ring{--pct:0;width:156px;height:156px;border-radius:50%;flex:none;background:conic-gradient(var(--ac) calc(var(--pct)*1%),var(--bd) 0);display:grid;place-items:center}
+#ring.bad{background:conic-gradient(var(--bad) 100%,var(--bad) 0)}
+#ring .in{width:122px;height:122px;border-radius:50%;background:var(--pn);display:flex;flex-direction:column;align-items:center;justify-content:center}
+#kc{font-size:36px;font-weight:750;line-height:1;letter-spacing:-.03em}#kt{font-size:12px;color:var(--mu);margin-top:4px}
+.side{flex:1;min-width:190px}#st{margin-bottom:10px;font-size:14px}
+.mac{display:grid;gap:7px}.mac div{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--bd);padding-bottom:5px}.mac b{font-size:17px;order:2}.mac span{font-size:13px;color:var(--mu)}
+.tr{display:flex;gap:18px;margin:18px 0 8px;padding:12px 0;border-top:1px solid var(--bd);border-bottom:1px solid var(--bd)}.tr>div{flex:1}.tr label{margin:0 0 4px}
+.ent{display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-top:1px solid var(--bd);font-size:14px}
+.ent small{display:block;color:var(--mu);font-size:12px}.ent button{padding:2px 8px;color:var(--mu);background:transparent;border:none}
+.sec{border-top:1px solid var(--bd);margin-top:30px;padding-top:22px}
+.wk{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:28px;align-items:end}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:18px 20px}.stats b{display:block;font-size:24px;font-weight:700;letter-spacing:-.02em;line-height:1.15}.stats span{font-size:12.5px;color:var(--mu)}
+.up{color:var(--bad)}.dn{color:var(--wt)}
+.strip{display:flex;gap:8px;align-items:flex-end;height:96px}.strip i{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;height:100%;font-style:normal;font-size:11.5px;color:var(--mu)}.strip i.t{color:var(--tx);font-weight:700}.strip b{width:100%;border-radius:3px 3px 0 0;background:var(--ac);min-height:3px}.strip b.o{background:var(--bad)}.strip b.n{background:var(--bd)}
+.tabs{display:flex;gap:18px}.tabs button{border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;padding:4px 0;color:var(--mu)}.tabs button.on{color:var(--tx);font-weight:650;border-color:var(--ac)}
+.cg{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;margin-top:16px}
+.cw{position:relative;height:190px}
+.chips{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-size:13px;color:var(--mu)}.chip{font-weight:600;color:var(--tx)}
+.chip.ok{color:var(--wt)}.chip.bad{color:var(--bad)}
+.hr{display:grid;grid-template-columns:1.2fr 1.4fr 1fr 2fr;gap:8px;padding:9px 0;border-top:1px solid var(--bd);font-size:13px;align-items:center}
+.hr.h{color:var(--mu);font-size:12.5px;border:0}
+details summary{cursor:pointer;color:var(--tx);font-size:13.5px;margin-top:16px;font-weight:600}
+@media(max-width:780px){.main,.wk{grid-template-columns:1fr}.add{padding:22px 0 0}.today{padding:18px 14px}}
+@media(max-width:560px){.hr{grid-template-columns:1fr 1fr}.hr.h{display:none}}
+</style></head>
+<body><div class="w">
+<header class="top">
+ <h1>Calorie Tracker</h1>
+ <div class="tgt"><label for="tg" style="margin:0">Daily target</label><input id="tg" type="number" min="500" step="50"><span>kcal</span><button id="theme" type="button"></button></div>
+</header>
+
+<main class="main">
+ <section class="today">
+  <div class="nav"><button class="fx" id="prev" aria-label="Previous day">‹</button><div id="dl"></div><button class="fx" id="next" aria-label="Next day">›</button></div>
+  <div class="dates"><input id="dt" type="date"><button class="fx" id="today">Today</button></div>
+  <div class="ringwrap">
+   <div id="ring"><div class="in"><span id="kc">0</span><span id="kt"></span></div></div>
+   <div class="side"><div id="st"></div>
+    <div class="mac">
+     <div><b id="mp" style="color:var(--p)">0 g</b><span>Protein</span></div>
+     <div><b id="mc" style="color:var(--c)">0 g</b><span>Carbs</span></div>
+     <div><b id="mf" style="color:var(--f)">0 g</b><span>Fats</span></div>
+    </div>
+   </div>
+  </div>
+  <div class="tr">
+   <div><label>Water (glasses)</label><div class="row" style="flex-wrap:nowrap"><button class="fx" id="w-minus" aria-label="Less water">−</button><span id="w-val" style="font-weight:700;text-align:center;min-width:24px;flex:0 0 auto">0</span><button class="fx" id="w-plus" aria-label="More water">+</button></div></div>
+   <div><label for="weight-log">Weight (kg)</label><input id="weight-log" type="number" step="0.1" placeholder="e.g. 70.5"></div>
+  </div>
+  <div id="ents"></div>
+ </section>
+
+ <section class="add">
+  <h2>Add food</h2>
+  <label for="food" style="margin-top:0">Food</label>
+  <div style="position:relative">
+   <input id="food" placeholder="Start typing, e.g. Kurkure, Dal, Roti" autocomplete="off">
+   <div id="sug" style="position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--bd);border-radius:0 0 6px 6px;max-height:180px;overflow-y:auto;z-index:10;display:none;box-shadow:0 6px 16px rgba(0,0,0,.12)"></div>
+  </div>
+  <label for="meal">Meal</label>
+  <select id="meal"><option value="Breakfast">Breakfast</option><option value="Lunch">Lunch</option><option value="Snacks" selected>Snacks</option><option value="Dinner">Dinner</option></select>
+  <label>Enter by</label>
+  <div class="seg"><label><input type="radio" name="m" value="size" checked><span>Approx size</span></label><label><input type="radio" name="m" value="g"><span>Exact grams</span></label></div>
+  <div id="bsize" class="row"><div><label>Unit</label><select id="size"></select></div><div><label>Quantity</label><input id="qty" type="number" min="0.5" step="0.5" value="1"></div></div>
+  <div id="bg" style="display:none"><label>Weight (g)</label><input id="grams" type="number" min="1" step="1" placeholder="e.g. 50"></div>
+  <div class="pv" id="pv">Pick a food to see its nutrition.</div>
+  <div id="lookbox" style="display:none;margin:-4px 0 10px"><label style="margin-top:0" for="ftype">What kind of food is it?</label><select id="ftype"><option value="cooked">Home-cooked dish</option><option value="packaged">Packaged / branded product</option><option value="restaurant">Restaurant / street food</option><option value="recipe">Homemade recipe (list ingredients in the name)</option></select><button id="look" style="width:100%;margin-top:8px">Estimate with Gemini</button></div>
+  <button class="pri" id="add" style="width:100%">Add to log</button>
+  <button id="cancel" style="display:none;width:100%;margin-top:8px">Cancel edit</button>
+  <details><summary>Food not in the list? Add your own</summary>
+   <div id="cnote" class="sub" style="display:none;margin-top:10px"></div>
+   <label>Name</label><input id="cn" placeholder="e.g. Homemade laddoo">
+   <div class="row"><div><label>kcal /100 g</label><input id="ck" type="number" min="0"></div><div><label>Protein /100 g</label><input id="cp" type="number" min="0"></div></div>
+   <div class="row"><div><label>Carbs /100 g</label><input id="cc" type="number" min="0"></div><div><label>Fat /100 g</label><input id="cf" type="number" min="0"></div></div>
+   <label>Units (name:grams, comma separated)</label><input id="cu" placeholder="piece:40   or   small bowl:100, medium bowl:150">
+   <button id="cadd" style="width:100%;margin-top:10px">Save food</button>
+  </details>
+ </section>
+</main>
+
+<section class="sec">
+ <h2>Last 7 days</h2>
+ <div class="wk"><div class="stats" id="wkstats"></div><div class="strip" id="wkstrip"></div></div>
+</section>
+
+<section class="sec">
+ <div class="row"><h2 style="margin:0">Trends</h2>
+  <div class="tabs fx" id="tabs"><button data-r="7" class="on">7D</button><button data-r="30">30D</button><button data-r="90">90D</button><button data-r="0">All</button></div></div>
+ <div class="chips" id="chips"></div>
+ <div class="cg">
+  <div><h3>Calories (dashed line = target; red dot = over target + 5%)</h3><div class="cw"><canvas id="cal"></canvas></div></div>
+  <div><h3>Protein (g)</h3><div class="cw"><canvas id="pro"></canvas></div></div>
+  <div><h3>Carbs (g)</h3><div class="cw"><canvas id="car"></canvas></div></div>
+  <div><h3>Fats (g)</h3><div class="cw"><canvas id="fat"></canvas></div></div>
+  <div><h3>Weight (kg, line = 7-day average)</h3><div class="cw"><canvas id="wtc"></canvas></div></div>
+  <div><h3>Water (glasses)</h3><div class="cw"><canvas id="wat"></canvas></div></div>
+ </div>
+</section>
+
+<section class="sec">
+ <h2>Target record</h2>
+ <div id="hist"></div>
+ <div class="row" style="margin-top:14px"><button class="fx" id="exp">Export backup</button><button class="fx" id="imp">Import backup</button><input id="impf" type="file" accept=".json,application/json" style="display:none"></div>
+ <div class="sub" style="margin-top:10px">Built-in values are approximate per-100 g figures; foods estimated by Gemini are marked “est.”. Data syncs to the local FastAPI backend (open http://127.0.0.1:8000).</div>
+</section>
+</div>
+
+<script>
+const FOODS=[
+["Roti / chapati",297,9.8,46,7.5,"piece",30,40,55],["Plain rice (cooked)",130,2.7,28,.3,"bowl",120,180,260],
+["Dal (cooked)",105,6.5,14,2.5,"bowl",100,150,220],["Rajma (cooked)",125,6.5,18,2.5,"bowl",100,150,220],
+["Chole (cooked)",164,8,24,4.5,"bowl",100,150,220],["Mixed veg sabzi",90,2.5,10,4.5,"bowl",80,130,200],
+["Paneer",265,18,3.5,20,"serving",50,80,120],["Paneer curry",180,8,6,14,"bowl",100,150,220],
+["Egg (boiled)",155,13,1.1,11,"egg",40,50,60],["Chicken curry",150,14,4,8,"bowl",100,150,220],
+["Chicken breast (cooked)",165,31,0,3.6,"serving",80,120,180],["Chicken biryani",165,8,22,5,"plate",200,300,450],
+["Aloo paratha",260,6,36,10,"piece",60,90,120],["Idli",130,4,27,.5,"piece",30,40,50],
+["Dosa (plain)",168,3.9,29,3.7,"piece",60,90,120],["Poha",130,2.5,25,2.5,"plate",120,180,250],
+["Upma",130,3,20,4,"plate",120,180,250],["Maggi (cooked)",140,3,19,5.5,"plate",150,250,350],
+["Samosa",262,3.5,24,17,"piece",50,80,100],["Bread (white)",265,9,49,3.2,"slice",25,30,35],
+["Milk (full cream)",62,3.2,4.8,3.3,"glass",150,200,250],["Curd / dahi",60,3.5,4.7,3.3,"bowl",80,120,200],
+["Banana",89,1.1,23,.3,"piece",80,110,140],["Apple",52,.3,14,.2,"piece",130,180,230],
+["Oats (dry)",389,16.9,66,6.9,"serving",30,40,50],["Peanut butter",588,25,20,50,"spoon",10,16,25],
+["Almonds",579,21,22,50,"handful",10,20,30],["Kurkure",535,6,58,31,"pack",25,40,90],
+["Cadbury Gems",490,4.5,75,19,"pack",10,20,40],["Dairy Milk chocolate",534,7.3,57,30,"bar",13,25,50],
+["Potato chips",540,6.5,53,34,"pack",28,52,100],["Biscuits (Parle-G type)",450,7,76,12.5,"serving",20,40,60],
+["Cream biscuit (Oreo type)",480,4.5,70,20,"biscuit",11,11,11],["Toffee / candy",400,1,85,6,"toffee",4,4,4],
+["Pizza",266,11,33,10,"slice",80,110,140],["French fries",312,3.4,41,15,"serving",70,110,150],
+["Cold drink (cola)",42,0,10.6,0,"glass",200,300,500],["Tea with milk and sugar",40,1,6,1.5,"cup",100,150,200],
+["Ghee",900,0,0,100,"spoon",5,10,15],["Salad",20,1,4,.2,"bowl",50,100,150],
+["Gulab jamun",300,4,50,10,"piece",30,45,60],["Ice cream",207,3.5,24,11,"scoop",50,70,100]];
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const iso=d=>d.toLocaleDateString("en-CA");
+const R=n=>Math.round(n).toLocaleString("en-IN");
+let cur=iso(new Date()),today=cur,range=7,mode="size",ch=[],sugIdx=-1,editIdx=null,editDay=null;
+const API=location.port==="8000"?"":"http://127.0.0.1:8000";
+
+// Counted items get one unit (qty = how many); bowls/plates/glasses/packs get small/medium/large; spoons get tsp/tbsp.
+const COUNT=new Set(["piece","slice","egg","scoop","cup","biscuit","toffee"]);
+const SZ=["small ","medium ","large "];
+const OV={"Ghee":[["tsp",5],["tbsp",14]],"Peanut butter":[["tsp",5],["tbsp",16]],"Almonds":[["almond",1.2],["handful",20]],"Biscuits (Parle-G type)":[["biscuit",5]]};
+const mkUnits=(n,u,g)=>OV[n]?OV[n].map(([a,b])=>({n:a,g:b})):COUNT.has(u)?[{n:u,g:g[1]}]:g.map((v,i)=>({n:SZ[i]+u,g:v}));
+const all=()=>FOODS.map(a=>({n:a[0],k:a[1],p:a[2],c:a[3],f:a[4],units:mkUnits(a[0],a[5],[a[6],a[7],a[8]])})).concat(S.custom.map(x=>x.units?x:{...x,units:mkUnits(x.n,x.u||"serving",x.g||[60,100,160])}));
+const find=n=>all().find(x=>x.n.toLowerCase()===String(n).trim().toLowerCase());
+// A day counts as over target only above target + 5%
+const MARGIN=1.05,isOver=(k,t)=>k>t*MARGIN;
+const isRec=d=>!!d&&((d.e&&d.e.length>0)||d.w>0||d.wt!=null);
+const tot=e=>e.reduce((a,x)=>({k:a.k+x.k,p:a.p+x.p,c:a.c+x.c,f:a.f+x.f}),{k:0,p:0,c:0,f:0});
+
+function sizes(){
+ const x=find($("food").value),sel=$("size");
+ if(!x){sel.innerHTML='<option value="0">Pick a food first</option>';sel.disabled=true;sizes.f="";return}
+ const us=x.units,same=sizes.f===x.n,keep=same?sel.value:(us.length===3&&us[0].n.startsWith("small")?"1":"0");
+ sel.disabled=false;
+ sel.innerHTML=us.map((o,i)=>'<option value="'+i+'">'+esc(o.n)+" ("+o.g+" g)</option>").join("");
+ sel.value=keep;sizes.f=x.n;
+}
+function calc(){
+ const x=find($("food").value);if(!x)return null;let g,lab;
+ if(mode==="size"){const un=x.units[+$("size").value]||x.units[0],q=+$("qty").value||1;g=un.g*q;lab=q+" × "+un.n}
+ else{g=+$("grams").value;lab=g+" g"}
+ if(!(g>0))return null;const m=g/100;
+ return{n:x.n,l:lab+(x.est?" · est."+(x.kind?" "+KL[x.kind]:""):""),g:Math.round(g),k:x.k*m,p:x.p*m,c:x.c*m,f:x.f*m, m:$("meal").value};
+}
+function preview(){
+ const r=calc();
+ $("pv").textContent=r?"≈ "+r.g+" g · "+R(r.k)+" kcal · P "+r.p.toFixed(1)+" g · C "+r.c.toFixed(1)+" g · F "+r.f.toFixed(1)+" g":(find($("food").value)?"Enter a quantity to see nutrition.":($("food").value.trim()?"Not in the list. Gemini can estimate it for you.":"Pick a food from the list, or type any food to get an estimate."));
+ const unk=!find($("food").value)&&$("food").value.trim();$("lookbox").style.display=unk?"block":"none";
+}
+
+function series(){
+ let n=range;const end=new Date();
+ if(!n){const ks=Object.keys(S.log).sort();n=ks.length?Math.max(7,Math.round((new Date(iso(end))-new Date(ks[0]))/864e5)+1):7}
+ const out=[];
+ for(let i=n-1;i>=0;i--){const d=new Date(end);d.setDate(end.getDate()-i);const k=iso(d);
+  out.push({k,l:d.toLocaleDateString("en-GB",{day:"numeric",month:"short"}),dd:S.log[k]&&S.log[k].e.length?S.log[k]:null,lg:S.log[k]||null})}
+ return out;
+}
+
+function charts(ser){
+ if(!window.Chart)return;
+ ch.forEach(c=>c.destroy());ch=[];
+ const cs=getComputedStyle(document.documentElement),v=n=>cs.getPropertyValue(n).trim(),mu=v("--mu"),bd=v("--bd"),bad=v("--bad");
+ [["cal","--k","k"],["pro","--p","p"],["car","--c","c"],["fat","--f","f"]].forEach(([id,cv,key])=>{
+  const col=v(cv),data=ser.map(s=>s.dd?+tot(s.dd.e)[key].toFixed(1):null);
+  const ds=[{data,borderColor:col,backgroundColor:col+"22",fill:true,tension:.3,spanGaps:true,borderWidth:2,
+   pointRadius:ser.length>31?2:4,
+   pointBackgroundColor:key==="k"?ser.map((s,i)=>s.dd&&isOver(data[i],s.dd.t)?bad:col):col,
+   pointBorderColor:key==="k"?ser.map((s,i)=>s.dd&&isOver(data[i],s.dd.t)?bad:col):col}];
+  if(key==="k")ds.push({data:ser.map(s=>s.dd?s.dd.t:S.target),borderColor:mu,borderDash:[6,4],borderWidth:1.5,pointRadius:0,fill:false});
+  ch.push(new Chart($(id),{type:"line",data:{labels:ser.map(s=>s.l),datasets:ds},options:{responsive:true,maintainAspectRatio:false,animation:false,
+   interaction:{mode:"index",intersect:false},plugins:{legend:{display:false}},
+   scales:{x:{ticks:{color:mu,maxTicksLimit:7},grid:{display:false}},y:{beginAtZero:true,ticks:{color:mu},grid:{color:bd}}}}}));
+ });
+ const lab=ser.map(s=>s.l),wts=ser.map(s=>s.lg&&s.lg.wt||null),wc=v("--wt"),ac=v("--wa");
+ const ma=wts.map((_,i)=>{const w=wts.slice(Math.max(0,i-6),i+1).filter(Boolean);return w.length?+(w.reduce((a,b)=>a+b,0)/w.length).toFixed(2):null});
+ const base=()=>({responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:"index",intersect:false},plugins:{legend:{display:false}},scales:{x:{ticks:{color:mu,maxTicksLimit:7},grid:{display:false}},y:{ticks:{color:mu},grid:{color:bd}}}});
+ ch.push(new Chart($("wtc"),{type:"line",data:{labels:lab,datasets:[
+  {data:wts,showLine:false,pointRadius:ser.length>31?2:4,pointBackgroundColor:wc+"88",pointBorderColor:wc+"88"},
+  {data:ma,borderColor:wc,borderWidth:2,pointRadius:0,tension:.3,spanGaps:true}]},options:base()}));
+ const wo=base();wo.scales.y.beginAtZero=true;
+ ch.push(new Chart($("wat"),{type:"bar",data:{labels:lab,datasets:[{data:ser.map(s=>s.lg&&s.lg.w?s.lg.w:null),backgroundColor:ac,borderRadius:3}]},options:wo}));
+}
+
+function renderWeek(){
+ const keys=(n,off)=>{const o=[];for(let i=n-1+off;i>=off;i--){const d=new Date();d.setDate(d.getDate()-i);o.push(iso(d))}return o};
+ const lg=k=>S.log[k]&&S.log[k].e.length?S.log[k]:null;
+ const w1=keys(7,0),w0=keys(7,7);
+ const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+ const kc=ks=>ks.map(lg).filter(Boolean).map(d=>tot(d.e).k);
+ const vals=(ks,f)=>ks.map(k=>S.log[k]&&f(S.log[k])).filter(Boolean);
+ const delta=(a,b,u,d)=>a==null||b==null?"":'<span class="'+(a>b?"up":"dn")+'">'+(a>b?"+":"−")+Math.abs(a-b).toFixed(d)+u+'</span> vs prior week';
+ const a1=avg(kc(w1)),a0=avg(kc(w0));
+ const inT=w1.filter(k=>{const d=lg(k);return d&&!isOver(tot(d.e).k,d.t)}).length,nl=w1.filter(lg).length;
+ const rec=k=>isRec(S.log[k]);
+ let st=0,d=new Date();if(!rec(iso(d)))d.setDate(d.getDate()-1);
+ while(rec(iso(d))){st++;d.setDate(d.getDate()-1)}
+ let best=0,run=0,prev=null;
+ Object.keys(S.log).filter(rec).sort().forEach(k=>{run=prev&&(new Date(k)-new Date(prev))/864e5===1?run+1:1;best=Math.max(best,run);prev=k});
+ const wt1=avg(vals(w1,x=>x.wt)),wt0=avg(vals(w0,x=>x.wt)),wa=avg(w1.filter(rec).map(k=>S.log[k].w||0)),nF=w1.filter(lg).length,nW=w1.filter(k=>S.log[k]&&S.log[k].w>0).length,nT=w1.filter(k=>S.log[k]&&S.log[k].wt!=null).length;
+ const stat=(b,s)=>'<div><b>'+b+'</b><span>'+s+'</span></div>';
+ $("wkstats").innerHTML=
+  stat(a1==null?"–":R(a1)+" kcal","Average per logged day<br>"+delta(a1,a0,"",0))+
+  stat(nl?inT+" of "+nl:"–","Logged days within target")+
+  stat(st+(st===1?" day":" days"),"Streak of days with any record · best "+best)+
+  stat(wt1==null?"–":wt1.toFixed(1)+" kg","Average weight<br>"+delta(wt1,wt0," kg",1))+
+  stat(wa==null?"–":wa.toFixed(1),"Water, glasses per recorded day")+
+  stat(nF+" · "+nW+" · "+nT,"Days with food · water · weight (of 7)");
+ $("wkstrip").innerHTML=w1.map(k=>{const q=lg(k),r=q?tot(q.e).k/q.t:0,h=Math.round(Math.min(1.4,r)/1.4*64);
+  return '<i class="'+(k===iso(new Date())?"t":"")+'"><b class="'+(!q?"n":r>MARGIN?"o":"")+'" style="height:'+(q?h:3)+'px" title="'+(q?R(tot(q.e).k)+" kcal":rec(k)?"No food logged":"Nothing recorded")+'"></b>'+new Date(k+"T00:00").toLocaleDateString("en-GB",{weekday:"short"}).slice(0,2)+'</i>'}).join("");
+}
+
+function render(){
+ const d=S.log[cur]||{t:S.target,e:[],w:0,wt:null};
+ const t=tot(d.e),tg=d.t,over=isOver(t.k,tg);
+ $("dl").textContent=new Date(cur+"T00:00").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+ $("dt").value=cur;$("tg").value=S.target;
+ $("kc").textContent=R(t.k);$("kt").textContent="/ "+R(tg)+" kcal";
+ $("ring").style.setProperty("--pct",Math.min(100,t.k/tg*100));$("ring").classList.toggle("bad",over);
+ $("st").textContent=!d.e.length?"Nothing logged yet.":over?"Over target by "+R(t.k-tg)+" kcal":t.k>tg?"Over by "+R(t.k-tg)+" kcal, within the 5% margin":R(tg-t.k)+" kcal left, within target";
+ $("st").style.color=over?"var(--bad)":"";
+ $("mp").textContent=t.p.toFixed(1)+" g";$("mc").textContent=t.c.toFixed(1)+" g";$("mf").textContent=t.f.toFixed(1)+" g";
+ 
+ $("w-val").textContent = d.w || 0;
+ $("weight-log").value = d.wt || "";
+
+ const meals = {"Breakfast": [], "Lunch": [], "Snacks": [], "Dinner": []};
+ d.e.forEach((x, i) => { 
+     const mType = x.m || "Snacks";
+     if(!meals[mType]) meals[mType] = [];
+     meals[mType].push({x, i});
+ });
+ 
+ $("ents").innerHTML = Object.keys(meals).map(m => {
+   if(!meals[m].length) return "";
+   return `<h3 style="margin-top:14px; margin-bottom:4px">${m}</h3>` + meals[m].map(({x, i}) => 
+     `<div class="ent">
+       <div>${esc(x.n)}<small>${esc(x.l)} · ${x.g} g · P ${x.p.toFixed(1)} C ${x.c.toFixed(1)} F ${x.f.toFixed(1)}</small></div>
+       <div style="white-space:nowrap">${R(x.k)} kcal 
+         <button onclick="edit(${i})" aria-label="Edit" style="margin-left:4px;cursor:pointer">✎</button>
+         <button onclick="del(${i})" aria-label="Remove" style="cursor:pointer">✕</button>
+       </div>
+     </div>`
+   ).join("");
+ }).join("");
+
+ const ser=series(),logged=ser.filter(s=>s.dd),ex=logged.filter(s=>isOver(tot(s.dd.e).k,s.dd.t)).length;
+ $("chips").innerHTML='<span class="chip">'+ser.filter(s=>isRec(s.lg)).length+' days recorded</span><span class="chip">'+logged.length+' with food</span><span class="chip ok">'+(logged.length-ex)+' within target</span><span class="chip bad">'+ex+' exceeded</span>'
+  +(logged.length?'<span class="chip">avg '+R(logged.reduce((a,s)=>a+tot(s.dd.e).k,0)/logged.length)+" kcal/day</span>":"");
+ $("hist").innerHTML=logged.length?'<div class="hr h"><div>Date</div><div>Calories</div><div>Status</div><div>Protein / Carbs / Fats</div></div>'+logged.slice().reverse().map(s=>{
+  const q=tot(s.dd.e),o=isOver(q.k,s.dd.t);
+  return '<div class="hr"><div>'+s.l+"</div><div>"+R(q.k)+" / "+R(s.dd.t)+'</div><div><span class="chip '+(o?"bad":"ok")+'">'+(o?"Exceeded +"+R(q.k-s.dd.t):"Within target")+"</span></div><div>"+q.p.toFixed(0)+" g / "+q.c.toFixed(0)+" g / "+q.f.toFixed(0)+" g</div></div>"}).join(""):'<div class="sub">No days logged in this range yet.</div>';
+ renderWeek();charts(ser);
+}
+
+function endEdit(){editIdx=null;editDay=null;$("add").textContent="Add to log";$("cancel").style.display="none"}
+window.edit = function(i) {
+  const item = S.log[cur].e[i];
+  editIdx = i; editDay = cur;
+  $("food").value = item.n;
+  $("meal").value = item.m || "Snacks";
+  mode = "g";
+  document.querySelector('input[name="m"][value="g"]').checked = true;
+  $("bsize").style.display = "none"; $("bg").style.display = "block";
+  $("grams").value = item.g;
+  sizes(); preview();
+  $("add").textContent = "Save changes"; $("cancel").style.display = "block";
+  $("food").focus();
+};
+$("cancel").onclick = () => { endEdit(); $("food").value=""; $("grams").value=""; sizes(); preview(); };
+
+function del(i){
+  const d=S.log[cur]; d.e.splice(i,1);
+  if(!d.e.length && !d.w && d.wt==null) delete S.log[cur];
+  if(editIdx!==null&&editDay===cur)endEdit();
+  save(); render();
+}
+function shift(n){const d=new Date(cur+"T00:00");d.setDate(d.getDate()+n);cur=iso(d);render()}
+
+$("food").addEventListener("input", function() {
+  const val = this.value.trim().toLowerCase();
+  const sug = $("sug");
+  sug.innerHTML = ""; sugIdx = -1;
+  
+  if (!val) {
+    sug.style.display = "none";
+  } else {
+    const matches = all().filter(x => x.n.toLowerCase().includes(val));
+    if (matches.length > 0) {
+      sug.style.display = "block";
+      matches.forEach(m => {
+        const div = document.createElement("div");
+        div.textContent = m.n + (m.est ? "  · est." : "");
+        div.style.cssText = "padding:8px 10px; cursor:pointer; border-bottom:1px solid var(--bd); font-size:14px;";
+        div.onmouseover = () => div.style.background = "var(--bg)";
+        div.onmouseout = () => div.style.background = "";
+        div.onclick = () => {
+          $("food").value = m.n;
+          sug.style.display = "none";
+          sizes(); preview();
+        };
+        sug.appendChild(div);
+      });
+    } else {
+      sug.style.display = "none";
+    }
+  }
+  sizes(); preview();
+});
+
+function hlSug(){[...$("sug").children].forEach((d,i)=>{d.style.background=i===sugIdx?"var(--bg)":"";if(i===sugIdx)d.scrollIntoView({block:"nearest"})})}
+$("food").addEventListener("keydown",e=>{
+  const sug=$("sug"),n=sug.children.length,open=sug.style.display==="block"&&n>0;
+  if(e.key==="ArrowDown"&&open){e.preventDefault();sugIdx=(sugIdx+1)%n;hlSug()}
+  else if(e.key==="ArrowUp"&&open){e.preventDefault();sugIdx=(sugIdx-1+n)%n;hlSug()}
+  else if(e.key==="Enter"&&open&&sugIdx>=0){e.preventDefault();sug.children[sugIdx].click()}
+  else if(e.key==="Escape"){sug.style.display="none";sugIdx=-1}
+});
+document.addEventListener("click", e => {
+  if (e.target !== $("food")) {
+      const sug = $("sug");
+      if (sug) sug.style.display = "none";
+  }
+});
+["size","qty","grams"].forEach(id=>$(id).addEventListener("input",preview));
+document.querySelectorAll('input[name="m"]').forEach(r=>r.addEventListener("change",e=>{mode=e.target.value;$("bsize").style.display=mode==="size"?"flex":"none";$("bg").style.display=mode==="g"?"block":"none";preview()}));
+
+const KL={cooked:"home-cooked",packaged:"packaged",restaurant:"restaurant",recipe:"homemade"};
+const KD={cooked:"typical home-cooked version",packaged:"packaged or branded product as sold in India (use the values on its nutrition label)",restaurant:"typical restaurant or street-food version (usually more oil, butter and sugar)",recipe:"homemade recipe: treat the text as a description of the dish and its ingredients, and estimate the finished cooked dish"};
+let pendingEst=null;
+function parseUnits(str){
+ const us=String(str||"").split(",").map(t=>t.trim()).filter(Boolean).map(t=>{const m=t.match(/^(.*?)[:\s]\s*([\d.]+)\s*g?$/);return m?{n:(m[1].trim()||"serving").slice(0,20),g:+m[2]}:(/^[\d.]+$/.test(t)?{n:"serving",g:+t}:null)});
+ return us.length&&us.every(Boolean)?us.slice(0,4):null;
+}
+function chk(k,p,c,f){
+ if(![k,p,c,f].every(Number.isFinite)||k<0||p<0||c<0||f<0)return{err:"Calories and macros must be numbers, zero or more."};
+ if(k>900)return{err:"More than 900 kcal per 100 g isn't possible."};
+ if(p>100||c>100||f>100||p+c+f>105)return{err:"Protein, carbs and fat can't add up to more than 100 g per 100 g."};
+ const im=4*p+4*c+9*f;
+ return{warn:k>20&&Math.abs(im-k)>Math.max(40,.25*k)?"the calories ("+Math.round(k)+") don't match the macros (about "+Math.round(im)+" kcal).":null};
+}
+function chkUnits(us,k){
+ if(!us||!us.length||us.length>4)return"Add 1 to 4 units.";
+ for(const u of us){
+  if(!(u.g>=0.5&&u.g<=1500))return u.n+": weight should be 0.5 to 1500 g.";
+  if(k*u.g/100>1500)return u.n+" would be over 1500 kcal, which looks wrong.";
+ }
+ return"";
+}
+// Gemini is only ever called through the backend, so the API key never reaches the browser.
+async function lookup(){
+ const name=$("food").value.trim();if(!name)return false;
+ const kind=$("ftype").value;
+ $("pv").textContent="Asking Gemini to estimate “"+name+"”…";$("look").disabled=true;
+ const promptText='Estimate nutrition for this food: "'+name+'". Type: '+KD[kind]+'. Reply with ONLY a JSON object in this shape: {"kcal":0,"protein":0,"carbs":0,"fat":0,"units":[{"name":"piece","grams":0}]}. kcal, protein, carbs and fat are per 100 g (macros in grams). units lists 1 to 3 natural ways people measure this food, with the grams in one of each. For items eaten by number (biscuit, toffee, piece, slice, egg) give ONE entry. For foods served in bowls, plates, glasses or packs give three entries named like "small bowl", "medium bowl", "large bowl". For things measured by spoon give "tsp" and "tbsp".';
+ let why="the estimate failed.";
+ try{
+  for(let t=0;t<2;t++){
+   const r=await fetch(API+"/api/estimate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:promptText})});
+   if(r.status===503){why="the backend has no Gemini key. Set GEMINI_API_KEY and restart it.";break}
+   if(!r.ok){let d="";try{d=(await r.json()).detail}catch(e){}why="the estimate service returned an error"+(d?" ("+d+")":"")+".";continue}
+   let j;try{j=JSON.parse((await r.json()).candidates[0].content.parts.map(p=>p.text||"").join(""))}catch(e){why="Gemini's reply wasn't readable.";continue}
+   const k=+j.kcal,p=+j.protein,c=+j.carbs,f=+j.fat;
+   const us=(Array.isArray(j.units)?j.units:[]).map(o=>({n:String(o.name||"").trim().slice(0,20),g:+o.grams})).filter(o=>o.n);
+   if(us.length&&us.every(u=>/^(small|medium|large)/.test(u.n)))us.sort((a,b)=>a.g-b.g);
+   const a=chk(k,p,c,f),bad=a.err||(a.warn&&"the "+a.warn)||chkUnits(us,k)||(k>0?"":"no calories were returned.");
+   if(bad){why=bad;continue}
+   $("cn").value=name;$("ck").value=Math.round(k);$("cp").value=+p.toFixed(1);$("cc").value=+c.toFixed(1);$("cf").value=+f.toFixed(1);
+   $("cu").value=us.map(u=>u.n+":"+u.g).join(", ");
+   pendingEst=kind;
+   const d=document.querySelector("details");d.open=true;
+   $("cnote").style.display="block";$("cnote").textContent="Estimated by Gemini as a "+KL[kind]+" food. These numbers are approximate. Check them, fix anything that looks off, then press Save food.";
+   $("pv").textContent="Estimate ready. Review it under “Add your own”, save it, then add it to your log.";
+   $("look").disabled=false;d.scrollIntoView({block:"nearest"});return false;
+  }
+ }catch(e){why="couldn't reach the backend."}
+ $("pv").textContent="Couldn't get a reliable estimate: "+why+" You can add the food yourself under “Add your own”.";
+ $("look").disabled=false;return false;
+}
+
+$("look").onclick=lookup;
+$("add").onclick=async()=>{
+ if($("food").value.trim()&&!find($("food").value)&&!(await lookup()))return;
+ const r=calc();if(!r){$("pv").textContent="Choose a food from the list and enter a size or weight first.";return}
+ if(!S.log[cur])S.log[cur]={t:S.target,e:[],w:0,wt:null};
+ if(editIdx!==null&&editDay===cur&&S.log[cur].e[editIdx])S.log[cur].e[editIdx]=r;else S.log[cur].e.push(r);
+ endEdit();save();render();$("grams").value="";$("food").value="";sizes();preview();$("food").focus();
+};
+$("cadd").onclick=()=>{
+ const n=$("cn").value.trim(),v=id=>$(id).value===""?NaN:+$(id).value;
+ const k=v("ck"),p=+$("cp").value||0,c=+$("cc").value||0,f=+$("cf").value||0,us=parseUnits($("cu").value||"serving:100");
+ if(!n||!Number.isFinite(k)){$("pv").textContent="Give the new food a name and at least its kcal per 100 g.";return}
+ const a=chk(k,p,c,f);if(a.err){$("pv").textContent=a.err;return}
+ const ue=chkUnits(us,k);if(ue){$("pv").textContent=ue+" Use the format name:grams, for example piece:40.";return}
+ S.custom=S.custom.filter(x=>x.n.toLowerCase()!==n.toLowerCase());
+ S.custom.push(Object.assign({n,k,p,c,f,units:us},pendingEst?{est:true,kind:pendingEst}:{}));
+ pendingEst=null;$("cnote").style.display="none";
+ save();$("food").value=n;sizes();preview();["cn","ck","cp","cc","cf","cu"].forEach(id=>$(id).value="");
+ if(a.warn)$("pv").textContent="Saved, but "+a.warn+" Double-check the values.";
+};
+$("tg").onchange=()=>{const v=+$("tg").value;if(v>0){S.target=v;if(S.log[cur])S.log[cur].t=v;save();render()}};
+$("prev").onclick=()=>shift(-1);$("next").onclick=()=>shift(1);
+$("today").onclick=()=>{cur=iso(new Date());render()};
+$("dt").onchange=e=>{if(e.target.value){cur=e.target.value;render()}};
+$("tabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;range=+b.dataset.r;document.querySelectorAll("#tabs button").forEach(x=>x.classList.toggle("on",x===b));render()};
+
+$("w-plus").onclick = () => { if(!S.log[cur]) S.log[cur] = {t:S.target,e:[],w:0,wt:null}; S.log[cur].w = (S.log[cur].w || 0) + 1; save(); render(); };
+$("w-minus").onclick = () => { if(S.log[cur] && S.log[cur].w > 0) { S.log[cur].w--; save(); render(); } };
+$("weight-log").onchange = (e) => { if(!S.log[cur]) S.log[cur] = {t:S.target,e:[],w:0,wt:null}; S.log[cur].wt = parseFloat(e.target.value) || null; save(); render(); };
+
+if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{paintTheme();render()});
+
+$("exp").onclick=()=>{
+  const blob = new Blob([JSON.stringify(S,null,1)], {type: "application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = "calorie-tracker-backup-"+iso(new Date())+".json";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+};
+$("imp").onclick=()=>$("impf").click();
+$("impf").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result);if(!j.log)throw 0;S=Object.assign({log:{},custom:[],target:2000},j);save();sizes();render()}catch(x){$("pv").textContent="That file doesn’t look like a backup."}};r.readAsText(f);e.target.value=""};
+
+
+let S={log:{},custom:[],target:2000};
+
+const effTheme=()=>document.documentElement.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+function paintTheme(){const d=effTheme()==="dark";$("theme").textContent=d?"☀ Light":"☾ Dark";$("theme").setAttribute("aria-label","Switch to "+(d?"light":"dark")+" theme")}
+$("theme").onclick=()=>{const n=effTheme()==="dark"?"light":"dark";document.documentElement.dataset.theme=n;try{localStorage.setItem("ct-theme",n)}catch(e){}paintTheme();render()};
+paintTheme();
+try{localStorage.removeItem("gemini_key")}catch(e){}
+const saveLocal=()=>{try{localStorage.setItem("ct1",JSON.stringify(S))}catch(e){}};
+const save=()=>{
+  S.updated=Date.now();
+  saveLocal();
+  fetch(API+"/api/data", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(S)
+  }).catch(e => console.log("Backend offline, saved locally"));
+};
+
+function initUI() { sizes();preview();render(); }
+const DEFAULTS={log:{},custom:[],target:2000,updated:0};
+let localCopy=null;
+try{localCopy=JSON.parse(localStorage.getItem("ct1")||"null")}catch(e){}
+
+fetch(API+"/api/data")
+  .then(res => res.json())
+  .then(data => {
+    // Keep whichever copy is newer, so offline edits are never overwritten
+    const useLocal = localCopy && (localCopy.updated||0) > (data.updated||0);
+    S = Object.assign({}, DEFAULTS, useLocal ? localCopy : data);
+    if(useLocal) save();
+    initUI();
+  })
+  .catch(e => {
+    console.log("Backend offline, using local storage");
+    S = Object.assign({}, DEFAULTS, localCopy||{});
+    initUI();
+  });
+
+// Roll over to the new day if the tab stays open past midnight
+setInterval(()=>{const n=iso(new Date());if(n!==today){if(cur===today)cur=n;today=n;render()}},60000);
+
+</script></body></html>
