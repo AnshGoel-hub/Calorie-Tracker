@@ -38,7 +38,7 @@ _load_env()
 
 # Set GEMINI_API_KEY in your environment to keep the key out of the browser.
 # Override GEMINI_MODEL if you want a different model.
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
 
 
 class TrackerData(BaseModel):
