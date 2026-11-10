@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import re
@@ -106,9 +107,14 @@ def check_pw(pw: str, h: str) -> bool:
         return False
 
 
-def set_session(resp: Response, uid: int):
+def pw_fp(pw_hash: str) -> str:
+    return hashlib.sha256(pw_hash.encode()).hexdigest()[:12]
+
+
+def set_session(resp: Response, uid: int, pw_hash: str):
     exp = datetime.now(timezone.utc) + timedelta(days=JWT_DAYS)
-    token = jwt.encode({"sub": str(uid), "exp": exp}, JWT_SECRET, algorithm="HS256")
+    token = jwt.encode({"sub": str(uid), "pv": pw_fp(pw_hash), "exp": exp},
+                       JWT_SECRET, algorithm="HS256")
     resp.set_cookie("session", token, max_age=JWT_DAYS * 86400, httponly=True,
                     samesite="lax", secure=SECURE_COOKIE, path="/")
 
@@ -118,13 +124,17 @@ def current_user(request: Request) -> dict:
     if not token:
         raise HTTPException(401, "Not logged in")
     try:
-        uid = int(jwt.decode(token, JWT_SECRET, algorithms=["HS256"])["sub"])
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        uid = int(payload["sub"])
     except Exception:
         raise HTTPException(401, "Session expired")
     with engine.connect() as c:
-        row = c.execute(select(users.c.id, users.c.email).where(users.c.id == uid)).first()
+        row = c.execute(select(users.c.id, users.c.email, users.c.pw_hash)
+                        .where(users.c.id == uid)).first()
     if not row:
         raise HTTPException(401, "Account not found")
+    if payload.get("pv") != pw_fp(row.pw_hash):
+        raise HTTPException(401, "Please sign in again")
     return {"id": row.id, "email": row.email}
 
 
@@ -143,12 +153,13 @@ def signup(c: Credentials, response: Response):
         raise HTTPException(400, "Enter a valid email address")
     if len(c.password) < 8:
         raise HTTPException(400, "Password must be at least 8 characters")
+    ph = hash_pw(c.password)
     with engine.begin() as conn:
         if conn.execute(select(users.c.id).where(users.c.email == email)).first():
             raise HTTPException(409, "That email is already registered")
         uid = conn.execute(users.insert().values(
-            email=email, pw_hash=hash_pw(c.password), created=int(time.time()))).inserted_primary_key[0]
-    set_session(response, uid)
+            email=email, pw_hash=ph, created=int(time.time()))).inserted_primary_key[0]
+    set_session(response, uid, ph)
     return {"id": uid, "email": email}
 
 
@@ -166,7 +177,7 @@ def login(c: Credentials, request: Request, response: Response):
         fails[key].append(now)
         raise HTTPException(401, "Wrong email or password")
     fails.pop(key, None)
-    set_session(response, row.id)
+    set_session(response, row.id, row.pw_hash)
     return {"id": row.id, "email": row.email}
 
 
@@ -187,6 +198,8 @@ class TrackerData(BaseModel):
     custom: List[Dict[str, Any]]
     target: float
     updated: int = 0
+    setup: bool = False                 # first-run welcome step finished
+    profile: Dict[str, Any] = {}        # height/age/activity etc. (used by the goals feature)
 
 
 class WorkoutData(BaseModel):
@@ -197,7 +210,7 @@ class WorkoutData(BaseModel):
 
 
 EMPTY = {
-    "tracker": {"log": {}, "custom": [], "target": 2000, "updated": 0},
+    "tracker": {"log": {}, "custom": [], "target": 2000, "updated": 0, "setup": False, "profile": {}},
     "workouts": {"workouts": [], "custom": [], "updated": 0, "bw": 0},
 }
 
@@ -239,6 +252,64 @@ def get_workouts(user: dict = Depends(current_user)):
 def update_workouts(data: WorkoutData, user: dict = Depends(current_user)):
     write_doc(user["id"], "workouts", data.model_dump())
     return {"status": "success"}
+
+
+# ---------------------------------------------------------------- account
+class PasswordChange(BaseModel):
+    current: str = Field(max_length=200)
+    new: str = Field(max_length=200)
+
+
+class PasswordOnly(BaseModel):
+    password: str = Field(max_length=200)
+
+
+def verify_password(uid: int, password: str):
+    """Re-check the password for sensitive actions, with a small attempt limit."""
+    key, now = f"acct|{uid}", time.time()
+    fails[key] = [t for t in fails[key] if now - t < 900]
+    if len(fails[key]) >= 8:
+        raise HTTPException(429, "Too many attempts. Try again in a few minutes.")
+    with engine.connect() as c:
+        row = c.execute(select(users.c.pw_hash).where(users.c.id == uid)).first()
+    if not row or not check_pw(password, row.pw_hash):
+        fails[key].append(now)
+        raise HTTPException(403, "Wrong password")
+
+
+@app.post("/api/account/password")
+def change_password(p: PasswordChange, response: Response, user: dict = Depends(current_user)):
+    verify_password(user["id"], p.current)
+    if len(p.new) < 8:
+        raise HTTPException(400, "New password must be at least 8 characters")
+    new_hash = hash_pw(p.new)
+    with engine.begin() as c:
+        c.execute(users.update().where(users.c.id == user["id"]).values(pw_hash=new_hash))
+    set_session(response, user["id"], new_hash)  # keeps this device signed in, signs out the rest
+    return {"status": "ok"}
+
+
+@app.get("/api/account/export")
+def export_data(user: dict = Depends(current_user)):
+    doc = {
+        "email": user["email"],
+        "exported": datetime.now(timezone.utc).isoformat(),
+        "tracker": read_doc(user["id"], "tracker"),
+        "workouts": read_doc(user["id"], "workouts"),
+    }
+    return Response(json.dumps(doc, indent=1), media_type="application/json",
+                    headers={"Content-Disposition": 'attachment; filename="calorie-tracker-export.json"'})
+
+
+@app.post("/api/account/delete")
+def delete_account(p: PasswordOnly, response: Response, user: dict = Depends(current_user)):
+    verify_password(user["id"], p.password)
+    with engine.begin() as c:
+        c.execute(user_data.delete().where(user_data.c.user_id == user["id"]))
+        c.execute(usage.delete().where(usage.c.user_id == user["id"]))
+        c.execute(users.delete().where(users.c.id == user["id"]))
+    response.delete_cookie("session", path="/")
+    return {"status": "deleted"}
 
 
 # ---------------------------------------------------------------- Gemini
@@ -321,6 +392,11 @@ def apple_icon():
 @app.get("/login")
 def login_page():
     return FileResponse(BASE_DIR / "login.html")
+
+
+@app.get("/account")
+def account_page():
+    return FileResponse(BASE_DIR / "account.html")
 
 
 @app.get("/workouts")

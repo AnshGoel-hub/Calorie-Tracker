@@ -64,6 +64,7 @@ details summary{cursor:pointer;color:var(--tx);font-size:13.5px;margin-top:16px;
 @media(max-width:780px){.main,.wk{grid-template-columns:1fr}.add{padding:22px 0 0}.today{padding:18px 14px}}
 @media(max-width:560px){.hr{grid-template-columns:1fr 1fr}.hr.h{display:none}}
 
+.wel{background:var(--pn);border:1px solid var(--bd);border-radius:10px;padding:18px;margin-bottom:18px}
 button,a,label,select{touch-action:manipulation}
 .bn{display:none}
 @media(max-width:780px){
@@ -81,9 +82,19 @@ button,a,label,select{touch-action:manipulation}
 </style></head>
 <body><div class="w">
 <header class="top">
- <div><h1>Calorie Tracker</h1><a class="tl" href="/workouts" style="color:var(--mu);font-size:13px">Workouts →</a></div>
+ <div><h1>Calorie Tracker</h1><a class="tl" href="/workouts" style="color:var(--mu);font-size:13px">Workouts →</a><a class="tl" href="/account" style="color:var(--mu);font-size:13px;margin-left:12px">Account</a></div>
  <div class="tgt"><label for="tg" style="margin:0">Daily target</label><input id="tg" type="number" min="500" step="50"><span>kcal</span><button id="theme" type="button"></button><button id="out" type="button" style="margin-left:6px;white-space:nowrap">Log out</button></div>
 </header>
+
+<section class="wel" id="welcome" style="display:none">
+ <h2>Welcome! Two quick things to get started</h2>
+ <div class="row">
+  <div><label for="wl-tg" style="margin-top:0">Daily calorie target (kcal)</label><input id="wl-tg" type="number" min="500" max="10000" step="50"></div>
+  <div><label for="wl-wt" style="margin-top:0">Today’s weight in kg (optional)</label><input id="wl-wt" type="number" min="20" max="300" step="0.1" placeholder="e.g. 70.5"></div>
+ </div>
+ <div class="row" style="margin-top:12px"><button class="pri fx" id="wl-save" type="button">Save and start</button><button class="fx" id="wl-skip" type="button">Skip for now</button></div>
+ <div class="sub" id="wl-msg" style="margin-top:8px"></div>
+</section>
 
 <main class="main">
  <section class="today">
@@ -159,7 +170,7 @@ button,a,label,select{touch-action:manipulation}
  <div class="row" style="margin-top:14px"><button class="fx" id="exp">Export backup</button><button class="fx" id="imp">Import backup</button><input id="impf" type="file" accept=".json,application/json" style="display:none"></div>
  <div class="sub" style="margin-top:10px">Built-in values are approximate per-100 g figures; foods estimated by Gemini are marked “est.”. Your data is saved to your account.</div>
 </section>
-<nav class="bn" aria-label="Main"><a href="/" class="on">Food</a><a href="/workouts">Workouts</a></nav>
+<nav class="bn" aria-label="Main"><a href="/" class="on">Food</a><a href="/workouts">Workouts</a><a href="/account">Account</a></nav>
 </div>
 
 <script>
@@ -293,7 +304,7 @@ function render(){
  const d=S.log[cur]||{t:S.target,e:[],w:0,wt:null};
  const t=tot(d.e),tg=d.t,over=isOver(t.k,tg);
  $("dl").textContent=new Date(cur+"T00:00").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
- $("dt").value=cur;$("tg").value=S.target;
+ $("dt").value=cur;$("tg").value=S.target;showWelcome();
  $("kc").textContent=R(t.k);$("kt").textContent="/ "+R(tg)+" kcal";
  $("ring").style.setProperty("--pct",Math.min(100,t.k/tg*100));$("ring").classList.toggle("bad",over);
  $("st").textContent=!d.e.length?"Nothing logged yet.":over?"Over target by "+R(t.k-tg)+" kcal":t.k>tg?"Over by "+R(t.k-tg)+" kcal, within the 5% margin":R(tg-t.k)+" kcal left, within target";
@@ -332,6 +343,11 @@ function render(){
  renderWeek();charts(ser);
 }
 
+function showWelcome(){
+ const on=!S.setup&&!Object.keys(S.log).length,el=$("welcome");
+ if(on&&el.style.display!=="block"){$("wl-tg").value=S.target;$("wl-wt").value="";$("wl-msg").textContent=""}
+ el.style.display=on?"block":"none";
+}
 function endEdit(){editIdx=null;editDay=null;$("add").textContent="Add to log";$("cancel").style.display="none"}
 window.edit = function(i) {
   const item = S.log[cur].e[i];
@@ -478,6 +494,14 @@ $("cadd").onclick=()=>{
  if(a.warn)$("pv").textContent="Saved, but "+a.warn+" Double-check the values.";
 };
 $("tg").onchange=()=>{const v=+$("tg").value;if(v>0){S.target=v;if(S.log[cur])S.log[cur].t=v;save();render()}};
+$("wl-save").onclick=()=>{
+ const t=+$("wl-tg").value,w=parseFloat($("wl-wt").value);
+ if(!(t>=500&&t<=10000)){$("wl-msg").textContent="Enter a daily target between 500 and 10,000 kcal.";return}
+ S.target=t;S.setup=true;
+ if(w>=20&&w<=300){const k=iso(new Date());S.log[k]={t:t,e:[],w:0,wt:w}}
+ save();render();
+};
+$("wl-skip").onclick=()=>{S.setup=true;save();render()};
 $("prev").onclick=()=>shift(-1);$("next").onclick=()=>shift(1);
 $("today").onclick=()=>{cur=iso(new Date());render()};
 $("dt").onchange=e=>{if(e.target.value){cur=e.target.value;render()}};
@@ -526,7 +550,7 @@ const save=()=>{
 };
 
 function initUI() { sizes();preview();render(); }
-const DEFAULTS={log:{},custom:[],target:2000,updated:0};
+const DEFAULTS={log:{},custom:[],target:2000,updated:0,setup:false,profile:{}};
 let localCopy=null;
 try{localCopy=JSON.parse(localStorage.getItem("ct1")||"null")}catch(e){}
 
