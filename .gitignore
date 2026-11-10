@@ -1,4 +1,7 @@
 .env
+local.db
 tracker_data.json
-tracker_data.json.tmp
+workouts_data.json
+backups/
 __pycache__/
+*.corrupt

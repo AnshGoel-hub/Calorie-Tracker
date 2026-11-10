@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sign in · Calorie Tracker</title>
+<script>try{var t=localStorage.getItem("ct-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f6f7;--card:#fff;--tx:#15181c;--mu:#5d6670;--bd:#d6dbe0;--ac:#f2b705;--on:#1a1400;--bad:#cf3f2b;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#12151a;--card:#1f252d;--tx:#e9edf1;--mu:#9aa5b1;--bd:#2b323b;--bad:#f0705c}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#12151a;--card:#1f252d;--tx:#e9edf1;--mu:#9aa5b1;--bd:#2b323b;--bad:#f0705c}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);color:var(--tx);font:15px/1.5 "Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.c{width:100%;max-width:380px;margin:20px;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:26px}
+h1{font-size:26px;letter-spacing:-.02em;margin:0 0 4px}.sub{color:var(--mu);font-size:13px;margin:0 0 18px}
+label{display:block;font-size:12.5px;color:var(--mu);margin:12px 0 4px}
+input,button{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:9px 10px;width:100%}
+input:focus,button:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+button{cursor:pointer}button.pri{background:var(--ac);border-color:var(--ac);color:var(--on);font-weight:700;margin-top:18px}
+button.lk{border:0;background:transparent;color:var(--mu);margin-top:10px;font-size:13px;text-decoration:underline}
+#err{color:var(--bad);font-size:13px;min-height:20px;margin-top:10px}#inv{display:none}
+</style></head>
+<body><form class="c" id="f">
+ <h1 id="ti">Sign in</h1><p class="sub">Calorie Tracker (private trial)</p>
+ <label for="em">Email</label><input id="em" type="email" autocomplete="email" required>
+ <label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" minlength="8" required>
+ <div id="inv"><label for="ic">Invite code</label><input id="ic" autocomplete="off"></div>
+ <div id="err" role="alert"></div>
+ <button class="pri" id="go" type="submit">Sign in</button>
+ <button class="lk" id="sw" type="button">New here? Create an account</button>
+</form>
+<script>
+const $=id=>document.getElementById(id);let up=false;
+function paint(){$("ti").textContent=up?"Create account":"Sign in";$("go").textContent=up?"Create account":"Sign in";
+ $("sw").textContent=up?"Have an account? Sign in":"New here? Create an account";$("inv").style.display=up?"block":"none";
+ $("pw").autocomplete=up?"new-password":"current-password";$("err").textContent=""}
+$("sw").onclick=()=>{up=!up;paint()};
+$("f").onsubmit=async e=>{e.preventDefault();$("go").disabled=true;$("err").textContent="";
+ try{const r=await fetch("/api/"+(up?"signup":"login"),{method:"POST",headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({email:$("em").value,password:$("pw").value,invite:$("ic").value})});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){$("err").textContent=typeof j.detail==="string"?j.detail:"Check your details and try again.";$("go").disabled=false;return}
+  // Never let one account's cached data bleed into another on a shared browser
+  try{if(localStorage.getItem("ct-uid")!==String(j.id)){localStorage.removeItem("ct1");localStorage.removeItem("wk1")}localStorage.setItem("ct-uid",String(j.id))}catch(x){}
+  location.href="/";
+ }catch(x){$("err").textContent="Couldn't reach the server.";$("go").disabled=false}};
+</script></body></html>
