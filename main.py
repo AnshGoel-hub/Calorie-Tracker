@@ -295,6 +295,29 @@ def healthz():
 
 
 # ---------------------------------------------------------------- pages
+STATIC = BASE_DIR / "static"
+
+
+@app.get("/manifest.webmanifest")
+def manifest():
+    return FileResponse(STATIC / "manifest.webmanifest", media_type="application/manifest+json")
+
+
+@app.get("/icon-192.png")
+def icon192():
+    return FileResponse(STATIC / "icon-192.png")
+
+
+@app.get("/icon-512.png")
+def icon512():
+    return FileResponse(STATIC / "icon-512.png")
+
+
+@app.get("/apple-touch-icon.png")
+def apple_icon():
+    return FileResponse(STATIC / "apple-touch-icon.png")
+
+
 @app.get("/login")
 def login_page():
     return FileResponse(BASE_DIR / "login.html")
