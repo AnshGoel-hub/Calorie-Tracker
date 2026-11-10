@@ -5,3 +5,4 @@ workouts_data.json
 backups/
 __pycache__/
 *.corrupt
+export-*.json
