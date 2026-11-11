@@ -21,15 +21,15 @@ h1{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0}h2{font-size:18
 .card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:18px;margin-bottom:16px}
 .card.danger{border-color:var(--bad)}
 label{display:block;font-size:12.5px;color:var(--mu);margin:12px 0 4px}
-input,button,.btn{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:9px 10px}
-input{width:100%}input:focus,button:focus-visible,.btn:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+input,select,button,.btn{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:9px 10px}
+input,select{width:100%}.g{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}.sg{background:var(--pn);border-radius:8px;padding:12px;margin-top:14px;font-size:14px}input:focus,select:focus,button:focus-visible,.btn:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
 button,.btn{cursor:pointer;text-decoration:none;display:inline-block;touch-action:manipulation}
 button.pri{background:var(--ac);border-color:var(--ac);color:var(--on);font-weight:700;margin-top:14px}
 button.bad{background:var(--bad);border-color:var(--bad);color:#fff;font-weight:700;margin-top:14px}
 .m{min-height:20px;font-size:13px;margin-top:10px}
 .bn{display:none}
 @media(max-width:780px){
- input,button,.btn{font-size:16px}button,.btn{min-height:40px}
+ input,select,button,.btn{font-size:16px}button,.btn{min-height:40px}
  .bn{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px)}
  .bn a{flex:1;text-align:center;padding:12px 0;color:var(--mu);text-decoration:none;font-weight:600;font-size:14px}
  .bn a.on{color:var(--tx);box-shadow:inset 0 2px 0 var(--ac)}
@@ -39,7 +39,20 @@ button.bad{background:var(--bad);border-color:var(--bad);color:#fff;font-weight:
 <body><div class="w">
 <header class="top"><div><h1>Account</h1><a class="tl" href="/">← Back to the tracker</a></div><button id="out" type="button">Log out</button></header>
 
-<section class="card"><h2>Signed in as</h2><div class="sub" id="em">…</div></section>
+<section class="card" id="profile"><h2>Profile</h2>
+ <div class="sub">Login email: <b id="em" style="color:var(--tx)">…</b></div>
+ <div class="g">
+  <div><label for="pS">Sex (used by the calorie formula)</label><select id="pS"><option value="">Select</option><option value="male">Male</option><option value="female">Female</option></select></div>
+  <div><label for="pA">Age (years)</label><input id="pA" type="number" min="1" max="120"></div>
+  <div><label for="pH">Height (cm)</label><input id="pH" type="number" min="50" max="260" step="0.5"></div>
+  <div><label for="pW">Weight (kg)</label><input id="pW" type="number" min="20" max="300" step="0.1"></div>
+ </div>
+ <label for="pC">Activity level</label><select id="pC"><option value="">Select</option><option value="sedentary">Sedentary (desk job, little exercise)</option><option value="light">Light (exercise 1-3 days a week)</option><option value="moderate">Moderate (exercise 3-5 days a week)</option><option value="very">Very active (hard exercise 6-7 days a week)</option></select>
+ <label for="pG">Goal</label><select id="pG"><option value="">Select</option><option value="lose">Lose weight slowly</option><option value="maintain">Maintain weight</option><option value="gain">Gain weight slowly</option></select>
+ <div class="sg" id="sg" style="display:none"></div>
+ <button class="pri" id="ps" type="button">Save profile</button> <button class="pri" id="ap" type="button" style="display:none">Save and use as my daily target</button>
+ <div class="m" id="pr" role="status"></div>
+</section>
 
 <section class="card"><h2>Change password</h2>
  <form id="pf">
@@ -73,6 +86,44 @@ const toLogin=()=>{location.href="/login"};
 const clearLocal=()=>{try{["ct1","wk1","ct-uid"].forEach(k=>localStorage.removeItem(k))}catch(e){}};
 async function post(url,body){const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})});let j={};try{j=await r.json()}catch(e){}return{r,j}}
 const say=(id,t,ok)=>{const e=$(id);e.textContent=t;e.style.color=ok?"var(--wt)":"var(--bad)"};
+const ACT={sedentary:1.2,light:1.375,moderate:1.55,very:1.725},GOAL={lose:-400,maintain:0,gain:300};
+let DOC=null,SUG=null;
+const iso=d=>d.toLocaleDateString("en-CA");
+const prof=()=>({sex:$("pS").value,age:+$("pA").value||0,height:+$("pH").value||0,weight:+$("pW").value||0,activity:$("pC").value,goal:$("pG").value});
+function suggest(p){
+ if(!(p.sex&&p.age&&p.height&&p.weight&&p.activity&&p.goal))return null;
+ if(p.age<18)return{err:"Calorie suggestions are only offered for adults (18+). Please set your own target on the tracker page."};
+ if(p.age>90||p.height<120||p.height>230||p.weight<30||p.weight>300)return{err:"Please check your age, height and weight."};
+ const bmr=10*p.weight+6.25*p.height-5*p.age+(p.sex==="male"?5:-161),tdee=bmr*ACT[p.activity],floor=p.sex==="male"?1500:1200,raw=tdee+GOAL[p.goal];
+ return{tdee:Math.round(tdee),target:Math.max(floor,Math.round(raw/10)*10),floored:raw<floor};
+}
+function showSug(){
+ SUG=suggest(prof());const b=$("sg");
+ if(!SUG){b.style.display="none";$("ap").style.display="none";return}
+ b.style.display="block";
+ if(SUG.err){b.textContent=SUG.err;b.style.color="var(--bad)";$("ap").style.display="none";SUG=null;return}
+ b.style.color="";
+ b.innerHTML="Estimated maintenance: <b>"+SUG.tdee.toLocaleString("en-IN")+" kcal/day</b><br>Suggested daily target: <b>"+SUG.target.toLocaleString("en-IN")+" kcal</b>"+(SUG.floored?" (raised to a safe minimum)":"")+"<br><span class='sub'>A rough estimate (Mifflin-St Jeor), not medical advice. Weight changes of about 0.4 kg a week or less are gentle. If you have a health condition, are pregnant, or have a history of disordered eating, check with a doctor or dietitian first.</span>";
+ $("ap").style.display="inline-block";
+}
+async function saveProfile(useTarget){
+ if(!DOC)return say("pr","Couldn’t load your data. Refresh and try again.");
+ DOC.profile=prof();DOC.updated=Date.now();
+ if(useTarget&&SUG){DOC.target=SUG.target;const k=iso(new Date());if(DOC.log&&DOC.log[k])DOC.log[k].t=SUG.target}
+ try{const{r}=await post("/api/data",DOC);
+  if(r.status===401)return toLogin();
+  say("pr",r.ok?(useTarget?"Saved. Your daily target is now "+SUG.target.toLocaleString("en-IN")+" kcal.":"Profile saved."):"Couldn’t save. Try again.",r.ok)}
+ catch(x){say("pr","Couldn’t reach the server.")}
+}
+async function loadProfile(){
+ try{const r=await fetch("/api/data");if(r.status===401)return toLogin();DOC=await r.json()}catch(e){return}
+ const p=DOC.profile||{},k=Object.keys(DOC.log||{}).sort().reverse().find(k=>DOC.log[k].wt);
+ $("pS").value=p.sex||"";$("pA").value=p.age||"";$("pH").value=p.height||"";
+ $("pW").value=p.weight||(k?DOC.log[k].wt:"");$("pC").value=p.activity||"";$("pG").value=p.goal||"";showSug();
+}
+["pS","pA","pH","pW","pC","pG"].forEach(id=>$(id).addEventListener("input",showSug));
+$("ps").onclick=()=>saveProfile(false);$("ap").onclick=()=>saveProfile(true);
+loadProfile();
 const why=(j,d)=>typeof j.detail==="string"?j.detail:d;
 (async()=>{try{const r=await fetch("/api/me");if(r.status===401)return toLogin();$("em").textContent=(await r.json()).email}catch(e){$("em").textContent="Couldn’t load your account."}})();
 $("out").onclick=async()=>{try{await post("/api/logout")}catch(e){}clearLocal();toLogin()};

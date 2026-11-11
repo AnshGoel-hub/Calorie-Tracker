@@ -374,6 +374,11 @@ def manifest():
     return FileResponse(STATIC / "manifest.webmanifest", media_type="application/manifest+json")
 
 
+@app.get("/goals.js")
+def goals_js():
+    return FileResponse(STATIC / "goals.js", media_type="application/javascript")
+
+
 @app.get("/icon-192.png")
 def icon192():
     return FileResponse(STATIC / "icon-192.png")
