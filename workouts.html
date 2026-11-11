@@ -61,7 +61,22 @@ button,a,label,select{touch-action:manipulation}
  .x{min-width:40px}
 }
 </style>
-<link rel="stylesheet" href="/ui.css"></head>
+<link rel="stylesheet" href="/ui.css">
+<style>
+:root{--bg:#f6ece6;--pn:#f3dfd3;--card:#fffaf5;--bd:#ecd6c9;--ac:#b4585c;--on:#fff;--mint:#fbe9d6;--peach:#fbdfcc;--lav:#f3dcd8;--sky:#f7e5d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1415;--pn:#271a1b;--card:#2f2021;--bd:#432d2e;--ac:#d9777b;--on:#2a0f10;--mint:#3a2527;--peach:#43292a;--lav:#3a2327;--sky:#402a2b}}
+:root[data-theme="dark"]{--bg:#1d1415;--pn:#271a1b;--card:#2f2021;--bd:#432d2e;--ac:#d9777b;--on:#2a0f10;--mint:#3a2527;--peach:#43292a;--lav:#3a2327;--sky:#402a2b}
+.cn{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px}
+.cd{aspect-ratio:1;display:grid;place-items:center;border-radius:50%;font-size:13px;color:var(--mu);border:0;padding:0;min-height:0!important;background:transparent}
+.cd.h{aspect-ratio:auto;border-radius:0;font-size:11.5px}
+.cd.on{background:var(--ac);color:var(--on);font-weight:700;cursor:pointer}
+.cd.td{box-shadow:inset 0 0 0 2px var(--tx)}
+.det{margin-top:10px;border-top:1px dashed var(--bd);padding-top:10px}
+.det .e{margin-bottom:10px}.det .ss{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.det .ss span{font-size:12px;background:var(--pn);padding:3px 9px;border-radius:20px}.det .ss span.w{opacity:.65}
+#hist{max-height:80vh;overflow:auto}
+</style></head>
 <body><div class="w">
 <header class="top">
  <div><h1>Workouts</h1><a class="sub tl" href="/">← Calorie tracker</a><a class="sub tl" href="/account" style="margin-left:12px">Account</a></div>
@@ -88,6 +103,14 @@ button,a,label,select{touch-action:manipulation}
   <div class="sub" id="msg"></div>
  </section>
  <section class="card"><h2>History</h2><div id="hist"></div></section>
+</div>
+
+<div class="grid">
+ <section class="card"><div class="cn"><h2 style="margin:0">Workout calendar</h2><div class="cn"><button id="cprev" type="button" aria-label="Previous month">‹</button><b id="cmon" style="min-width:120px;text-align:center"></b><button id="cnext" type="button" aria-label="Next month">›</button></div></div>
+  <div class="cal" id="cal"></div><div class="sub" id="csum" style="margin-top:12px"></div></section>
+ <section class="card"><h2>Exercise progress</h2>
+  <div class="row"><div><label for="pe">Exercise</label><select id="pe"></select></div><div><label for="pm">Metric</label><select id="pm"></select></div></div>
+  <div class="cw"><canvas id="pg"></canvas></div><div class="sub" id="psum" style="margin-top:10px"></div></section>
 </div>
 
 <section class="card">
@@ -173,7 +196,7 @@ function body(val,fill){let o="";
 const NEG="fill:none;stroke:var(--mu);stroke-width:1;stroke-dasharray:2 2";
 const zone=v=>v<=0?NEG:v<10?`fill:var(--wa);fill-opacity:${.3+.05*v};stroke:var(--bg)`:v<=20?"fill:var(--wt);fill-opacity:.85;stroke:var(--bg)":"fill:var(--bad);fill-opacity:.9;stroke:var(--bg)";
 
-let W={workouts:[],custom:[],updated:0,bw:0},D,editId=null,sel=null,range=7,CH={};
+let W={workouts:[],custom:[],updated:0,bw:0},D,editId=null,sel=null,range=7,CH={},openIds=new Set(),calM=(()=>{const d=new Date();d.setDate(1);return d})();
 const ALL=()=>BASE.concat(W.custom||[]),lib=id=>ALL().find(x=>x.id===id);
 const newDraft=()=>({date:iso(new Date()),name:"",dur:"",ex:[]});
 const BW=()=>+$("bw").value||70,cmp=(a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id);
@@ -230,9 +253,44 @@ function saveWorkout(){
 
 // ---- history
 function drawHist(){
- $("hist").innerHTML=W.workouts.length?W.workouts.slice(0,40).map(w=>{const s=stat(w),names=w.ex.map(e=>(lib(e.id)||{n:"?"}).n).join(", ");
-  return `<div class="hi${w.id===sel?" on":""}" onclick="pick('${w.id}')"><div class="hh"><b>${esc(w.name||names.slice(0,40))}</b><span class="sub">${w.date}</span></div><div class="sub">${esc(names)}</div><div class="chips"><span>${s.sets} sets</span>${s.vol?`<span>${R(s.vol)} kg volume</span>`:""}${w.dur?`<span>${w.dur} min</span>`:""}${s.cm?`<span>${s.cm} min cardio</span>`:""}<span>≈ ${w.kcal} kcal</span></div><div class="acts"><button onclick="event.stopPropagation();editW('${w.id}')">Edit</button><button onclick="event.stopPropagation();delW('${w.id}')">Delete</button></div></div>`}).join(""):'<div class="sub">No workouts yet. Log your first one on the left.</div>'}
+ $("hist").innerHTML=W.workouts.length?W.workouts.slice(0,300).map(w=>{const s=stat(w),names=w.ex.map(e=>(lib(e.id)||{n:"?"}).n).join(", ");
+  return `<div class="hi${w.id===sel?" on":""}" onclick="tog('${w.id}')"><div class="hh"><b>${esc(w.name||names.slice(0,40))}</b><span class="sub">${w.date} ${openIds.has(w.id)?"▾":"▸"}</span></div><div class="sub">${esc(names)}</div><div class="chips"><span>${s.sets} sets</span>${s.vol?`<span>${R(s.vol)} kg volume</span>`:""}${w.dur?`<span>${w.dur} min</span>`:""}${s.cm?`<span>${s.cm} min cardio</span>`:""}<span>≈ ${w.kcal} kcal</span></div>${openIds.has(w.id)?detail(w):""}<div class="acts"><button onclick="event.stopPropagation();editW('${w.id}')">Edit</button><button onclick="event.stopPropagation();delW('${w.id}')">Delete</button></div></div>`}).join(""):'<div class="sub">No workouts yet. Log your first one on the left.</div>'}
 function pick(id){sel=id;drawHist();drawStats()}
+function tog(id){openIds.has(id)?openIds.delete(id):openIds.add(id);sel=id;drawHist();drawStats()}
+function fs(x,s){const t={w:"warm-up",f:"failure",d:"drop set"}[s.t],v=x.t==="wr"?(s.w||0)+" kg × "+(s.r||0):x.t==="br"?(s.r||0)+" reps":x.t==="dur"?(s.d||0)+" s":(s.d||0)+" min · "+(s.k||0)+" km";return `<span class="${s.t==="w"?"w":""}">${v}${t?" · "+t:""}</span>`}
+function detail(w){try{return `<div class="det">${w.ex.map(e=>{const x=lib(e.id);return x?`<div class="e"><b>${esc(x.n)}</b><div class="ss">${e.sets.map(s=>fs(x,s)).join("")}</div></div>`:""}).join("")}<div class="sub">${w.dur?w.dur+" min total · ":""}body weight ${w.bw||"?"} kg</div></div>`}catch(e){return ""}}
+// ---- calendar
+function drawCal(){
+ const y=calM.getFullYear(),m=calM.getMonth(),off=(new Date(y,m,1).getDay()+6)%7,nd=new Date(y,m+1,0).getDate(),by={},now=iso(new Date());
+ W.workouts.forEach(w=>{(by[w.date]=by[w.date]||[]).push(w)});
+ let h=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d=>`<span class="cd h">${d}</span>`).join(""),n=0;
+ for(let i=0;i<off;i++)h+='<span class="cd"></span>';
+ for(let d=1;d<=nd;d++){const k=y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0"),ws=by[k];
+  if(ws){n++;h+=`<button class="cd on${k===now?" td":""}" type="button" title="${ws.length} workout${ws.length>1?"s":""}" onclick="goDay('${k}')">${d}</button>`}else h+=`<span class="cd${k===now?" td":""}">${d}</span>`}
+ $("cal").innerHTML=h;$("cmon").textContent=calM.toLocaleDateString("en-GB",{month:"long",year:"numeric"});$("csum").textContent=n+" workout day"+(n===1?"":"s")+" this month. Tap a day to open it.";
+}
+function goDay(k){const ws=W.workouts.filter(w=>w.date===k);if(!ws.length)return;sel=ws[0].id;ws.forEach(w=>openIds.add(w.id));drawHist();drawStats();const el=document.querySelector("#hist .hi.on");if(el)el.scrollIntoView({behavior:"smooth",block:"center"})}
+// ---- exercise progress
+const PM={wr:[["top","Top weight (kg)"],["e1","Est. 1RM (kg)"],["vol","Volume (kg)"]],br:[["best","Best reps"],["tot","Total reps"]],dur:[["max","Longest (s)"]],dd:[["km","Distance (km)"],["min","Minutes"]]};
+function drawProg(){
+ const ids=[...new Set(W.workouts.flatMap(w=>w.ex.map(e=>e.id)))].filter(lib).sort((a,b)=>lib(a).n.localeCompare(lib(b).n)),pe=$("pe"),pm=$("pm"),cu=pe.value,cm=pm.value;
+ CH.pg&&CH.pg.destroy();
+ if(!ids.length){pe.innerHTML="";pm.innerHTML="";$("psum").textContent="Log a workout to see your progress here.";return}
+ pe.innerHTML=ids.map(id=>`<option value="${id}">${esc(lib(id).n)}</option>`).join("");pe.value=ids.includes(cu)?cu:ids[0];
+ const x=lib(pe.value),ms=PM[x.t]||PM.wr;pm.innerHTML=ms.map(m=>`<option value="${m[0]}">${m[1]}</option>`).join("");pm.value=ms.some(m=>m[0]===cm)?cm:ms[0][0];
+ const k=pm.value,sum=a=>a.reduce((p,q)=>p+q,0),mx=a=>Math.max(0,...a);
+ const pts=W.workouts.filter(w=>w.ex.some(e=>e.id===x.id)).sort((a,b)=>a.date.localeCompare(b.date)).map(w=>{
+  const ss=w.ex.filter(e=>e.id===x.id).flatMap(e=>e.sets).filter(s=>s.t!=="w");let v;
+  if(k==="top")v=mx(ss.map(s=>s.w||0));else if(k==="e1")v=mx(ss.map(s=>(s.w||0)*(1+(s.r||0)/30)));else if(k==="vol")v=sum(ss.map(s=>(s.w||0)*(s.r||0)));
+  else if(k==="best")v=mx(ss.map(s=>s.r||0));else if(k==="tot")v=sum(ss.map(s=>s.r||0));else if(k==="max")v=mx(ss.map(s=>s.d||0));else if(k==="km")v=sum(ss.map(s=>s.k||0));else v=sum(ss.map(s=>s.d||0));
+  return{d:w.date,v:+v.toFixed(1)}});
+ const best=pts.reduce((a,b)=>b.v>=a.v?b:a),f=pts[0],l=pts[pts.length-1],df=+(l.v-f.v).toFixed(1);
+ $("psum").textContent=pts.length+" session"+(pts.length>1?"s":"")+" · first "+f.v+" → latest "+l.v+(pts.length>1?" ("+(df>=0?"+":"")+df+")":"")+" · best "+best.v+" on "+best.d;
+ if(!window.Chart)return;
+ const cs=getComputedStyle(document.documentElement),v=n=>cs.getPropertyValue(n).trim(),ac=v("--ac"),mu=v("--mu"),bd=v("--bd");
+ CH.pg=new Chart($("pg"),{type:"line",data:{labels:pts.map(p=>p.d.slice(5)),datasets:[{data:pts.map(p=>p.v),borderColor:ac,backgroundColor:ac+"33",fill:true,tension:.3,borderWidth:2,pointRadius:4,pointBackgroundColor:ac}]},
+  options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:mu,maxTicksLimit:7},grid:{display:false}},y:{ticks:{color:mu},grid:{color:bd}}}}});
+}
 function editW(id){const w=W.workouts.find(x=>x.id===id);if(!w)return;editId=id;D=JSON.parse(JSON.stringify(w));D.dur=w.dur||"";D.ex.forEach(e=>e.sets.forEach(s=>{if(s.t===undefined)delete s.t}));drawLog();scrollTo({top:0,behavior:"smooth"})}
 function delW(id){if(!confirm("Delete this workout?"))return;W.workouts=W.workouts.filter(w=>w.id!==id);if(sel===id)sel=null;saveW();drawHist();drawStats()}
 
@@ -254,9 +312,12 @@ function drawStats(){
  const sw=W.workouts.find(w=>w.id===sel)||W.workouts[0],S=load(sw?[sw]:[]),mx=Math.max(1,...M.map(m=>S[m]));
  $("t2").textContent=sw?"Session: "+(sw.name||"workout")+" ("+sw.date+")":"No session selected";
  $("m2").innerHTML=body(S,m=>S[m]<=0?NEG:`fill:var(--ac);fill-opacity:${.3+.7*S[m]/mx};stroke:var(--bg)`);
- radar("r2",M.map(m=>+S[m].toFixed(1)),Math.max(4,mx),false)}
+ radar("r2",M.map(m=>+S[m].toFixed(1)),Math.max(4,mx),false);
+ try{drawCal();drawProg()}catch(e){console.error(e)}}
 
 // ---- wiring
+$("pe").onchange=drawProg;$("pm").onchange=drawProg;
+$("cprev").onclick=()=>{calM.setMonth(calM.getMonth()-1);drawCal()};$("cnext").onclick=()=>{calM.setMonth(calM.getMonth()+1);drawCal()};
 $("aex").onclick=addEx;$("exq").onkeydown=e=>{if(e.key==="Enter")addEx()};
 $("sv").onclick=saveWorkout;$("cx").onclick=()=>{editId=null;D=newDraft();drawLog();msg("")};
 $("bw").onchange=()=>{W.bw=+$("bw").value||0;saveW();est()};
