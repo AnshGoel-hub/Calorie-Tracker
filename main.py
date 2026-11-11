@@ -200,6 +200,8 @@ class TrackerData(BaseModel):
     updated: int = 0
     setup: bool = False                 # first-run welcome step finished
     profile: Dict[str, Any] = {}        # height/age/activity etc. (used by the goals feature)
+    marks: Dict[str, Any] = {}          # calendar day markers: {"2026-11-11": {"t": "sick", "n": "fever"}}
+    goals: Dict[str, Any] = {}          # achievements settings, e.g. {"weekly": 3} workouts per week
 
 
 class WorkoutData(BaseModel):
@@ -210,7 +212,7 @@ class WorkoutData(BaseModel):
 
 
 EMPTY = {
-    "tracker": {"log": {}, "custom": [], "target": 2000, "updated": 0, "setup": False, "profile": {}},
+    "tracker": {"log": {}, "custom": [], "target": 2000, "updated": 0, "setup": False, "profile": {}, "marks": {}, "goals": {}},
     "workouts": {"workouts": [], "custom": [], "updated": 0, "bw": 0},
 }
 
@@ -374,16 +376,6 @@ def manifest():
     return FileResponse(STATIC / "manifest.webmanifest", media_type="application/manifest+json")
 
 
-@app.get("/ui.css")
-def ui_css():
-    return FileResponse(STATIC / "ui.css", media_type="text/css")
-
-
-@app.get("/goals.js")
-def goals_js():
-    return FileResponse(STATIC / "goals.js", media_type="application/javascript")
-
-
 @app.get("/icon-192.png")
 def icon192():
     return FileResponse(STATIC / "icon-192.png")
@@ -407,6 +399,16 @@ def login_page():
 @app.get("/account")
 def account_page():
     return FileResponse(BASE_DIR / "account.html")
+
+
+@app.get("/nav.js")
+def nav_js():
+    return FileResponse(BASE_DIR / "nav.js", media_type="application/javascript")
+
+
+@app.get("/achievements")
+def achievements_page():
+    return FileResponse(BASE_DIR / "achievements.html")
 
 
 @app.get("/workouts")
