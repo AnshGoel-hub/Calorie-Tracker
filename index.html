@@ -507,9 +507,9 @@ $("cadd").onclick=()=>{
  if(a.warn)$("pv").textContent="Saved, but "+a.warn+" Double-check the values.";
 };
 $("tg").onchange=()=>{const v=+$("tg").value;if(v>0){S.target=v;if(S.log[cur])S.log[cur].t=v;save();render()}};
-Goals.fill($("wl-ac"),Goals.ACT,"light");Goals.fill($("wl-gl"),Goals.GOAL,"maintain");
+if(window.Goals){Goals.fill($("wl-ac"),Goals.ACT,"light");Goals.fill($("wl-gl"),Goals.GOAL,"maintain")}
 const wlProfile=()=>({sex:$("wl-sx").value,age:+$("wl-ag").value||null,height:+$("wl-ht").value||null,activity:$("wl-ac").value,goal:$("wl-gl").value});
-$("wl-suggest").onclick=()=>{const r=Goals.calc(wlProfile(),parseFloat($("wl-wt").value));
+$("wl-suggest").onclick=()=>{if(!window.Goals){$("wl-msg").textContent="Suggestions are unavailable right now.";return}const r=Goals.calc(wlProfile(),parseFloat($("wl-wt").value));
  if(r.target)$("wl-tg").value=r.target;$("wl-msg").textContent=r.err||r.note};
 $("wl-save").onclick=()=>{
  const t=+$("wl-tg").value,w=parseFloat($("wl-wt").value),p=wlProfile();
