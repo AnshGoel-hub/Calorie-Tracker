@@ -1,0 +1,50 @@
+/* Shared look: soft pastel tiles, round cards, pill controls. Loaded after each page's own <style>. */
+:root{--r:22px;--bg:#f4f3ef;--pn:#eceae3;--bd:#e5e2da;--mint:#dcebd9;--peach:#fde3c4;--lav:#e3ddf4;--sky:#d9ebf5;--sh:0 1px 2px rgba(20,24,28,.05),0 10px 28px rgba(20,24,28,.07)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101317;--pn:#171b21;--card:#1b2027;--bd:#2a3039;--mint:#1f3029;--peach:#372f20;--lav:#2a2940;--sky:#1e3240;--sh:0 10px 28px rgba(0,0,0,.35)}}
+:root[data-theme="dark"]{--bg:#101317;--pn:#171b21;--card:#1b2027;--bd:#2a3039;--mint:#1f3029;--peach:#372f20;--lav:#2a2940;--sky:#1e3240;--sh:0 10px 28px rgba(0,0,0,.35)}
+body{background:radial-gradient(1100px 480px at 90% -8%,var(--lav),transparent 62%),radial-gradient(900px 420px at -10% 0%,var(--peach),transparent 60%),var(--bg);background-attachment:fixed}
+.w{max-width:1240px;padding:clamp(14px,3vw,32px) clamp(14px,3vw,28px) 56px}
+h1{font-size:clamp(26px,4vw,38px)}h2{font-size:clamp(17px,2.2vw,20px)}
+.top a.tl,.top .tl{display:inline-block;padding:6px 14px;border-radius:999px;background:var(--card);border:1px solid var(--bd);text-decoration:none;margin:8px 8px 0 0!important}
+/* surfaces */
+.card,.wel,.today,.add,.cg>div,.c{border-radius:var(--r);box-shadow:var(--sh)}
+.main{border:0;gap:clamp(14px,2vw,22px)}
+.today{background:var(--mint);padding:clamp(16px,2.4vw,26px)}
+.add{background:var(--card);border:1px solid var(--bd);padding:clamp(16px,2.4vw,26px)}
+.wel{background:var(--peach);border:0}
+.sec{border-top:0;margin-top:clamp(24px,4vw,40px);padding-top:0}
+.cg>div{background:var(--card);border:1px solid var(--bd);padding:16px}
+.stats>div{border-radius:18px;padding:14px 16px;background:var(--pn)}
+.stats>div:nth-child(4n+1){background:var(--mint)}.stats>div:nth-child(4n+2){background:var(--peach)}.stats>div:nth-child(4n+3){background:var(--lav)}.stats>div:nth-child(4n+4){background:var(--sky)}
+.hi,.ex{border-radius:18px}.hi.on{box-shadow:inset 4px 0 0 var(--ac)}
+/* controls */
+input,select,button,.btn{border-radius:14px;border-color:var(--bd);padding:11px 14px}
+input:focus,select:focus{border-color:var(--ac);outline:3px solid color-mix(in srgb,var(--ac) 35%,transparent);outline-offset:0}
+button,.btn{border-radius:999px}.sn,.x{border-radius:12px}.ent button{background:transparent}
+button.pri{padding:13px 20px;box-shadow:0 8px 18px -8px color-mix(in srgb,var(--ac) 80%,transparent)}
+.seg{border:0;border-radius:999px;background:var(--pn);padding:4px;gap:4px}.seg label{border-radius:999px;background:transparent}
+.tabs button.on{border-color:var(--ac)}
+/* today hero */
+#ring{width:clamp(136px,20vw,188px);height:clamp(136px,20vw,188px);background:conic-gradient(var(--ac) calc(var(--pct)*1%),color-mix(in srgb,var(--tx) 10%,transparent) 0)}
+#ring.bad{background:conic-gradient(var(--bad) 100%,var(--bad) 0)}
+#ring .in{width:80%;height:80%;background:var(--mint)}
+#kc{font-size:clamp(32px,4.8vw,46px)}
+.mac{grid-template-columns:repeat(3,1fr);gap:10px}
+.mac div{flex-direction:column;align-items:flex-start;gap:2px;border:0;border-radius:16px;padding:12px;background:color-mix(in srgb,var(--card) 72%,transparent)}
+.mac b{order:0;font-size:clamp(17px,2.2vw,21px)}.mac span{order:1;font-size:12px}
+.tr{border:0;border-radius:18px;padding:14px;background:color-mix(in srgb,var(--card) 72%,transparent)}
+.ent{border:0;border-radius:16px;padding:12px 14px;margin-top:8px;background:color-mix(in srgb,var(--card) 72%,transparent)}
+.cw{height:clamp(170px,26vw,230px)}
+/* login */
+.c{border:1px solid var(--bd);padding:clamp(22px,5vw,32px)}
+/* layout by screen size */
+@media(min-width:781px) and (max-width:1040px){.main{grid-template-columns:1fr}}
+@media(min-width:1500px){.w{max-width:1400px}}
+@media(max-width:780px){
+ .today{padding:18px 16px}.add{padding:18px 16px}
+ body{padding-bottom:96px}
+ .bn{left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom,0px));border:1px solid var(--bd);border-radius:999px;padding:5px;gap:4px;box-shadow:var(--sh);background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+ .bn a{padding:10px 0;border-radius:999px}
+ .bn a.on{background:var(--ac);color:var(--on);box-shadow:none}
+ .mac div{padding:10px}
+}

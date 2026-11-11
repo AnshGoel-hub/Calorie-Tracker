@@ -374,6 +374,11 @@ def manifest():
     return FileResponse(STATIC / "manifest.webmanifest", media_type="application/manifest+json")
 
 
+@app.get("/ui.css")
+def ui_css():
+    return FileResponse(STATIC / "ui.css", media_type="text/css")
+
+
 @app.get("/goals.js")
 def goals_js():
     return FileResponse(STATIC / "goals.js", media_type="application/javascript")
