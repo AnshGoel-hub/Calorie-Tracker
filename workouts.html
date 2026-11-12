@@ -65,14 +65,25 @@ button,a,label,select{touch-action:manipulation}
 .ov{overflow-x:auto;max-height:380px;overflow-y:auto}.pt{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}.pt th{color:var(--mu);font-weight:500;text-align:left;padding:6px 10px 6px 0;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--card)}.pt td{padding:7px 10px 7px 0;border-bottom:1px solid var(--bd)}
 .bdg{font-size:11px;background:var(--ac);color:var(--on);padding:1px 7px;border-radius:20px;font-weight:700;margin-right:6px}
 .prr{padding:8px 0;border-bottom:1px solid var(--bd);font-size:13.5px}
-</style><script src="/nav.js" defer></script></head>
+.pane[hidden]{display:none}
+.pg{display:flex;gap:8px;overflow-x:auto;margin:0 0 16px;padding:2px 2px 6px;scrollbar-width:none}.pg::-webkit-scrollbar{display:none}
+.pg button{flex:none;white-space:nowrap}.pg button.on{background:var(--ac);border-color:var(--ac);color:var(--on);font-weight:700}
+.hm{font-size:13px;color:var(--mu);font-weight:600;margin:18px 0 8px}
+.hi .dt{margin-top:10px;border-top:1px dashed var(--bd);padding-top:10px}
+.dx{margin-bottom:12px}.dx b{font-size:14px}
+.ds{display:flex;gap:12px;align-items:center;font-size:13.5px;padding:3px 0}.ds span:first-child{width:22px;text-align:right;color:var(--mu)}
+.ds em{font-style:normal;font-size:11px;background:var(--pn);color:var(--mu);padding:1px 8px;border-radius:20px}
+.acts{flex-wrap:wrap}
+</style><link rel="stylesheet" href="/ui.css"><script src="/nav.js" defer></script></head>
 <body><div class="w">
 <header class="top">
  <div><h1>Workouts</h1></div>
  <div class="tgt"><label for="bw" style="margin:0">Body weight</label><input id="bw" type="number" step="0.1" min="20"><span>kg</span><button id="theme" type="button">Theme</button><button id="out" type="button">Log out</button></div>
 </header>
 
-<div class="grid">
+<nav class="pg" id="pg" aria-label="Workout sections"><button type="button" data-p="log" class="on">Log</button><button type="button" data-p="history">History</button><button type="button" data-p="muscles">Muscle balance</button><button type="button" data-p="strength">Strength</button></nav>
+
+<div id="p-log" class="pane"><div class="grid">
  <section class="card">
   <h2 id="lt">Log a workout</h2>
   <div class="row">
@@ -91,9 +102,18 @@ button,a,label,select{touch-action:manipulation}
   <div class="row" style="margin:0"><button class="pri" id="sv" style="flex:1">Save workout</button><button id="cx" style="flex:none;display:none">Cancel edit</button></div>
   <div class="sub" id="msg"></div>
  </section>
- <section class="card"><h2>History</h2><div id="hist"></div></section>
-</div>
+ <section class="card"><div class="row" style="align-items:center;margin-bottom:12px"><h2 style="margin:0;flex:1">Latest workouts</h2><button id="all" type="button" style="flex:none">See all</button></div><div id="recent"></div></section>
+</div></div>
 
+<div id="p-history" class="pane" hidden><section class="card">
+ <h2>Workout history</h2>
+ <label for="hq">Search</label><input id="hq" type="search" placeholder="Name, date (2026-11) or exercise" autocomplete="off">
+ <div class="sub" id="hcount" style="margin:10px 0 0"></div>
+ <div id="hist"></div>
+ <button id="more" type="button" style="width:100%;margin-top:6px;display:none">Show more</button>
+</section></div>
+
+<div id="p-muscles" class="pane" hidden>
 <section class="card">
  <div class="row" style="align-items:center;margin-bottom:4px"><h2 style="margin:0;flex:1">Muscle balance</h2>
   <div class="tabs" style="flex:none" id="rg"><button data-r="7" class="on">7D</button><button data-r="30">30D</button><button data-r="90">90D</button></div></div>
@@ -107,7 +127,10 @@ button,a,label,select{touch-action:manipulation}
  </div>
  <div class="sub" style="margin-top:14px">Primary muscles count 1 per working set and secondary muscles 0.5; warm-up sets don’t count; cardio counts 1 set per 10 minutes. Calories are MET-based estimates (about ±25%) using your body weight.</div>
 </section>
-<section class="card" id="sa" style="margin-top:16px">
+</div>
+
+<div id="p-strength" class="pane" hidden>
+<section class="card" id="sa">
  <div class="row" style="align-items:center;margin-bottom:4px"><h2 style="margin:0;flex:1">Strength analytics</h2>
   <div class="tabs" style="flex:none" id="sg"><button data-r="30">30D</button><button data-r="90" class="on">90D</button><button data-r="365">1Y</button><button data-r="0">All</button></div></div>
  <div class="stats" id="sst"></div>
@@ -120,6 +143,7 @@ button,a,label,select{touch-action:manipulation}
  <h3 style="margin-top:22px">Personal records</h3><div class="ov" id="prt"></div>
  <div class="sub" style="margin-top:14px">Est. 1RM uses the Epley formula, weight × (1 + reps/30), on working sets of up to 12 reps. A PR is a heavier top set than in any earlier session of that exercise (or a higher est. 1RM at the same weight; more reps for bodyweight moves). Warm-up sets are ignored. Volume counts weighted exercises only.</div>
 </section>
+</div>
 </div>
 
 <script>
@@ -242,15 +266,44 @@ function saveWorkout(){
  const ex=D.ex.map(e=>({id:e.id,sets:e.sets.filter(hasV).map(norm)})).filter(e=>e.sets.length);
  if(!ex.length){msg("Add at least one set with numbers in it.");return}
  const w={id:editId||Date.now().toString(36),date:D.date||iso(new Date()),name:D.name.trim(),dur:+D.dur||0,ex,bw:BW()};w.kcal=kcal(w,w.bw);
- W.workouts=W.workouts.filter(x=>x.id!==w.id).concat(w).sort(cmp);saveW();sel=w.id;editId=null;D=newDraft();drawLog();drawHist();drawStats();msg("Saved.")}
+ W.workouts=W.workouts.filter(x=>x.id!==w.id).concat(w).sort(cmp);saveW();sel=w.id;editId=null;D=newDraft();drawLog();refresh();msg("Saved.")}
 
 // ---- history
+let hq="",hlim=20,opn=new Set(),pg="log";
+const TL={w:"Warm-up",f:"Failure",d:"Drop set"};
+const setTxt=(x,s)=>x.t==="wr"?(s.w||0)+" kg × "+(s.r||0):x.t==="br"?"× "+(s.r||0)+" reps":x.t==="dur"?(s.d||0)+" s":(s.d||0)+" min · "+(s.k||0)+" km";
+const dayF=d=>new Date(d+"T00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
+function detail(w){
+ return w.ex.map(e=>{const x=lib(e.id)||{n:"Removed exercise",t:"wr"};
+  return `<div class="dx"><b>${esc(x.n)}</b>${e.sets.map((s,j)=>`<div class="ds"><span>${j+1}</span><span>${setTxt(x,s)}</span>${s.t&&s.t!=="n"?`<em>${TL[s.t]||""}</em>`:""}</div>`).join("")}</div>`}).join("")}
+function card(w,full){
+ const s=stat(w),names=w.ex.map(e=>(lib(e.id)||{n:"?"}).n).join(", "),o=full&&opn.has(w.id);
+ return `<div class="hi${w.id===sel&&full?" on":""}" data-id="${w.id}" onclick="${full?"toggle":"jump"}('${w.id}')"><div class="hh"><b>${esc(w.name||names.slice(0,40))}</b><span class="sub">${dayF(w.date)}</span></div>`+
+  (o?"":`<div class="sub">${esc(names)}</div>`)+
+  `<div class="chips"><span>${s.sets} sets</span>${s.vol?`<span>${R(s.vol)} kg volume</span>`:""}${w.dur?`<span>${w.dur} min</span>`:""}${s.cm?`<span>${s.cm} min cardio</span>`:""}<span>≈ ${w.kcal||0} kcal</span></div>`+
+  (o?`<div class="dt">${detail(w)}</div>`:"")+
+  (full?`<div class="acts"><button onclick="event.stopPropagation();toggle('${w.id}')">${o?"Hide details":"Show details"}</button><button onclick="event.stopPropagation();editW('${w.id}')">Edit</button><button onclick="event.stopPropagation();repeatW('${w.id}')">Repeat</button><button onclick="event.stopPropagation();delW('${w.id}')">Delete</button></div>`:"")+`</div>`}
 function drawHist(){
- $("hist").innerHTML=W.workouts.length?W.workouts.slice(0,40).map(w=>{const s=stat(w),names=w.ex.map(e=>(lib(e.id)||{n:"?"}).n).join(", ");
-  return `<div class="hi${w.id===sel?" on":""}" onclick="pick('${w.id}')"><div class="hh"><b>${esc(w.name||names.slice(0,40))}</b><span class="sub">${w.date}</span></div><div class="sub">${esc(names)}</div><div class="chips"><span>${s.sets} sets</span>${s.vol?`<span>${R(s.vol)} kg volume</span>`:""}${w.dur?`<span>${w.dur} min</span>`:""}${s.cm?`<span>${s.cm} min cardio</span>`:""}<span>≈ ${w.kcal} kcal</span></div><div class="acts"><button onclick="event.stopPropagation();editW('${w.id}')">Edit</button><button onclick="event.stopPropagation();delW('${w.id}')">Delete</button></div></div>`}).join(""):'<div class="sub">No workouts yet. Log your first one on the left.</div>'}
-function pick(id){sel=id;drawHist();drawStats()}
-function editW(id){const w=W.workouts.find(x=>x.id===id);if(!w)return;editId=id;D=JSON.parse(JSON.stringify(w));D.dur=w.dur||"";D.ex.forEach(e=>e.sets.forEach(s=>{if(s.t===undefined)delete s.t}));drawLog();scrollTo({top:0,behavior:"smooth"})}
-function delW(id){if(!confirm("Delete this workout?"))return;W.workouts=W.workouts.filter(w=>w.id!==id);if(sel===id)sel=null;saveW();drawHist();drawStats()}
+ $("recent").innerHTML=W.workouts.length?W.workouts.slice(0,5).map(w=>card(w,false)).join(""):'<div class="sub">No workouts yet. Log your first one.</div>';
+ const q=hq.trim().toLowerCase(),all=W.workouts.filter(w=>!q||(w.name||"").toLowerCase().includes(q)||w.date.includes(q)||w.ex.some(e=>((lib(e.id)||{}).n||"").toLowerCase().includes(q)));
+ let m="",h="";
+ all.slice(0,hlim).forEach(w=>{const k=w.date.slice(0,7);if(k!==m){m=k;h+=`<div class="hm">${new Date(k+"-01T00:00").toLocaleDateString("en-GB",{month:"long",year:"numeric"})}</div>`}h+=card(w,true)});
+ $("hist").innerHTML=h||'<div class="sub">'+(q?"No workouts match your search.":"No workouts yet. Log your first one on the Log tab.")+"</div>";
+ $("hcount").textContent=all.length+(all.length===1?" workout":" workouts")+(q?" found":" logged");
+ $("more").style.display=all.length>hlim?"":"none"}
+function toggle(id){opn.has(id)?opn.delete(id):opn.add(id);sel=id;refresh()}
+function jump(id){opn.add(id);sel=id;hlim=Math.max(hlim,W.workouts.length);tab("history");setTimeout(()=>{const e=document.querySelector('[data-id="'+id+'"]');if(e)e.scrollIntoView({block:"center"})},50)}
+function editW(id){const w=W.workouts.find(x=>x.id===id);if(!w)return;editId=id;D=JSON.parse(JSON.stringify(w));D.dur=w.dur||"";D.ex.forEach(e=>e.sets.forEach(s=>{if(s.t===undefined)delete s.t}));tab("log");drawLog();msg("");scrollTo({top:0,behavior:"smooth"})}
+function repeatW(id){const w=W.workouts.find(x=>x.id===id);if(!w)return;editId=null;D=newDraft();D.name=w.name||"";D.dur=w.dur||"";D.ex=w.ex.map(e=>({id:e.id,sets:e.sets.map(s=>Object.assign({},s))}));tab("log");drawLog();msg("Copied from "+w.date+". Adjust the numbers and save.");scrollTo({top:0,behavior:"smooth"})}
+function delW(id){if(!confirm("Delete this workout?"))return;W.workouts=W.workouts.filter(w=>w.id!==id);opn.delete(id);if(sel===id)sel=null;saveW();refresh()}
+const VALID=["log","history","muscles","strength"];
+function tab(n,init){
+ pg=VALID.includes(n)?n:"log";
+ VALID.forEach(p=>{$("p-"+p).hidden=p!==pg});
+ document.querySelectorAll("#pg button").forEach(b=>b.classList.toggle("on",b.dataset.p===pg));
+ if(!init&&location.hash!=="#"+pg)history.replaceState(null,"","#"+pg);
+ refresh()}
+function refresh(){drawHist();if(pg==="muscles")drawStats();if(pg==="strength")drawAnalytics()}
 
 // ---- stats
 function radar(id,data,max,tgt){if(!window.Chart)return;CH[id]&&CH[id].destroy();
@@ -270,7 +323,7 @@ function drawStats(){
  const sw=W.workouts.find(w=>w.id===sel)||W.workouts[0],S=load(sw?[sw]:[]),mx=Math.max(1,...M.map(m=>S[m]));
  $("t2").textContent=sw?"Session: "+(sw.name||"workout")+" ("+sw.date+")":"No session selected";
  $("m2").innerHTML=body(S,m=>S[m]<=0?NEG:`fill:var(--ac);fill-opacity:${.3+.7*S[m]/mx};stroke:var(--bg)`);
- radar("r2",M.map(m=>+S[m].toFixed(1)),Math.max(4,mx),false);drawAnalytics()}
+ radar("r2",M.map(m=>+S[m].toFixed(1)),Math.max(4,mx),false)}
 
 // ---- strength analytics
 let sr=90,pe="";
@@ -325,6 +378,9 @@ function drawAnalytics(){
  $("prt").innerHTML=rows?'<table class="pt"><thead><tr><th>Exercise</th><th>Heaviest / best</th><th>Est. 1RM</th><th>Best session volume</th><th>Last done</th></tr></thead><tbody>'+rows+"</tbody></table>":'<div class="sub">Log a weighted or bodyweight exercise to see records here.</div>'}
 
 // ---- wiring
+$("pg").onclick=e=>{const b=e.target.closest("button");if(b)tab(b.dataset.p)};
+$("all").onclick=()=>tab("history");$("more").onclick=()=>{hlim+=20;drawHist()};
+$("hq").oninput=()=>{hq=$("hq").value;hlim=20;drawHist()};
 $("sg").onclick=e=>{const b=e.target.closest("button");if(!b)return;sr=+b.dataset.r;document.querySelectorAll("#sg button").forEach(x=>x.classList.toggle("on",x===b));drawAnalytics()};
 $("pe").onchange=()=>{pe=$("pe").value;drawProg(hist().H)};
 $("aex").onclick=addEx;$("exq").onkeydown=e=>{if(e.key==="Enter")addEx()};
@@ -334,8 +390,8 @@ $("rg").onclick=e=>{const b=e.target.closest("button");if(!b)return;range=+b.dat
 $("cadd").onclick=()=>{const n=$("cn").value.trim();if(!n){msg("Give the exercise a name.");return}
  const p=$("cp").value,s=[...$("cs").selectedOptions].map(o=>o.value).filter(v=>v!==p);
  W.custom=(W.custom||[]).concat({id:"c"+Date.now().toString(36),n,t:$("ct").value,P:[p],S:s,met:6});saveW();$("cn").value="";fillLists();msg("Exercise saved. You can add it now.")};
-$("theme").onclick=()=>{const d=document.documentElement,dark=d.dataset.theme?d.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches,n=dark?"light":"dark";d.dataset.theme=n;try{localStorage.setItem("ct-theme",n)}catch(e){}drawStats()};
-if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener("change",drawStats);
+$("theme").onclick=()=>{const d=document.documentElement,dark=d.dataset.theme?d.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches,n=dark?"light":"dark";d.dataset.theme=n;try{localStorage.setItem("ct-theme",n)}catch(e){}refresh()};
+if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener("change",refresh);
 function fillLists(){$("exl").innerHTML=ALL().map(x=>`<option value="${esc(x.n)}">`).join("");
  const o=M.map(m=>`<option value="${m}">${MN[m]}</option>`).join("");$("cp").innerHTML=o;$("cs").innerHTML=o}
 
@@ -348,6 +404,8 @@ $("out").onclick=async()=>{try{await fetch(API+"/api/logout",{method:"POST"})}ca
  if(src)W=Object.assign(W,src);
  if(!W.bw){try{const d=await (await fetch(API+"/api/data")).json(),k=Object.keys(d.log||{}).sort().reverse().find(k=>d.log[k].wt);if(k)W.bw=d.log[k].wt}catch(e){}}
  $("bw").value=W.bw||"";D=newDraft();sel=W.workouts[0]?W.workouts[0].id:null;
- fillLists();drawLog();drawHist();drawStats();
+ const qw=new URLSearchParams(location.search).get("w");
+ if(qw&&W.workouts.some(x=>x.id===qw)){opn.add(qw);sel=qw;hlim=9999;history.replaceState(null,"","/workouts#history");setTimeout(()=>{const e=document.querySelector('[data-id="'+qw+'"]');if(e)e.scrollIntoView({block:"center"})},120)}
+ fillLists();drawLog();tab(location.hash.slice(1),true);addEventListener("hashchange",()=>tab(location.hash.slice(1),true));
 })();
 </script></body></html>

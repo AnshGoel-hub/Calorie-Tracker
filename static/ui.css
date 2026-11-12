@@ -42,9 +42,12 @@ button.pri{padding:13px 20px;box-shadow:0 8px 18px -8px color-mix(in srgb,var(--
 @media(min-width:1500px){.w{max-width:1400px}}
 @media(max-width:780px){
  .today{padding:18px 16px}.add{padding:18px 16px}
- body{padding-bottom:96px}
- .bn{left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom,0px));border:1px solid var(--bd);border-radius:999px;padding:5px;gap:4px;box-shadow:var(--sh);background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
- .bn a{padding:10px 0;border-radius:999px}
- .bn a.on{background:var(--ac);color:var(--on);box-shadow:none}
+ html body{padding-bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+ body .nv-bar{left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom,0px));border:1px solid var(--bd);border-radius:26px;padding:4px;gap:2px;box-shadow:var(--sh);background:color-mix(in srgb,var(--card) 90%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+ body .nv-bar a{border-radius:22px;padding:7px 0 6px}
+ body .nv-bar a.on{background:var(--ac);color:var(--on);box-shadow:none}
  .mac div{padding:10px}
 }
+
+/* sidebar (desktop) */
+@media(min-width:781px){body .nv-side a{border-radius:14px}body .nv-side{box-shadow:var(--sh)}}

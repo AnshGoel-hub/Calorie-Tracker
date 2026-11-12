@@ -406,6 +406,21 @@ def nav_js():
     return FileResponse(BASE_DIR / "nav.js", media_type="application/javascript")
 
 
+@app.get("/ui.css")
+def ui_css():
+    return FileResponse(BASE_DIR / "ui.css", media_type="text/css")
+
+
+@app.get("/goals.js")
+def goals_js():
+    return FileResponse(BASE_DIR / "goals.js", media_type="application/javascript")
+
+
+@app.get("/calendar")
+def calendar_page():
+    return FileResponse(BASE_DIR / "calendar.html")
+
+
 @app.get("/achievements")
 def achievements_page():
     return FileResponse(BASE_DIR / "achievements.html")

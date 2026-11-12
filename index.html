@@ -79,16 +79,7 @@ button,a,label,select{touch-action:manipulation}
  .ent button{min-width:40px}
  .hr{padding:11px 0}
 }
-.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:14px}
-.cal .dw{font-size:11.5px;color:var(--mu);text-align:center;padding-bottom:2px}
-.cal button.d{min-height:58px;padding:4px 5px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:2px;text-align:left;font-size:13px}
-.cal button.d.sel{border-color:var(--ac);box-shadow:inset 0 0 0 1px var(--ac)}
-.cal button.d.td span.n{font-weight:800;text-decoration:underline;text-decoration-color:var(--ac);text-underline-offset:3px}
-.cal button.d.mk1{background:var(--pn)}
-.dots{display:flex;gap:3px;min-height:7px}.dots i{width:7px;height:7px;border-radius:50%}
-.mkl{font-size:10.5px;line-height:1.15;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:var(--mu);font-weight:600}
-.lgd{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
-</style><script src="/nav.js" defer></script></head>
+</style><link rel="stylesheet" href="/ui.css"><script src="/nav.js" defer></script></head>
 <body><div class="w">
 <header class="top">
  <div><h1>Calorie Tracker</h1></div>
@@ -102,6 +93,7 @@ button,a,label,select{touch-action:manipulation}
   <div><label for="wl-wt" style="margin-top:0">Today’s weight in kg (optional)</label><input id="wl-wt" type="number" min="20" max="300" step="0.1" placeholder="e.g. 70.5"></div>
  </div>
  <div class="row" style="margin-top:12px"><button class="pri fx" id="wl-save" type="button">Save and start</button><button class="fx" id="wl-skip" type="button">Skip for now</button></div>
+ <div class="sub" style="margin-top:10px">Want a suggested target? Add your age, height and activity in <a href="/account">Settings</a>.</div>
  <div class="sub" id="wl-msg" style="margin-top:8px"></div>
 </section>
 
@@ -160,19 +152,6 @@ button,a,label,select{touch-action:manipulation}
  <div class="wk"><div class="stats" id="wkstats"></div><div class="strip" id="wkstrip"></div></div>
 </section>
 
-<section class="sec" id="calendar">
- <div class="row"><h2 style="margin:0">Calendar</h2>
-  <div class="nav fx"><button id="cprev" aria-label="Previous month">‹</button><div id="cm" style="min-width:140px;text-align:center;font-weight:600"></div><button id="cnext" aria-label="Next month">›</button></div></div>
- <div class="cal" id="cal"></div>
- <div class="chips"><span><i class="lgd" style="background:var(--wt)"></i>Food within target</span><span><i class="lgd" style="background:var(--bad)"></i>Over target</span><span><i class="lgd" style="background:var(--wa)"></i>Workout</span></div>
- <div class="row" style="margin-top:16px">
-  <div class="fx" id="mk-d" style="font-weight:600;min-width:150px"></div>
-  <select id="mk-t" class="fx" style="width:auto" aria-label="Day marker"><option value="">No marker</option><option value="rest">Rest day</option><option value="sick">Sick</option><option value="rain">Rain</option><option value="exam">Exam</option><option value="travel">Travel</option><option value="busy">Busy</option><option value="other">Other</option></select>
-  <input id="mk-n" maxlength="60" placeholder="Reason or note (optional)" aria-label="Marker note">
-  <button class="pri fx" id="mk-s" type="button">Save</button><button class="fx" id="mk-o" type="button">Open day ↑</button>
- </div>
-</section>
-
 <section class="sec" id="trends">
  <div class="row"><h2 style="margin:0">Trends</h2>
   <div class="tabs fx" id="tabs"><button data-r="7" class="on">7D</button><button data-r="30">30D</button><button data-r="90">90D</button><button data-r="0">All</button></div></div>
@@ -218,15 +197,15 @@ const FOODS=[
 ["Ghee",900,0,0,100,"spoon",5,10,15],["Salad",20,1,4,.2,"bowl",50,100,150],
 ["Gulab jamun",300,4,50,10,"piece",30,45,60],["Ice cream",207,3.5,24,11,"scoop",50,70,100]];
 
+if(location.hash==="#calendar")location.replace("/calendar");
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const iso=d=>d.toLocaleDateString("en-CA");
 const R=n=>Math.round(n).toLocaleString("en-IN");
-let cur=iso(new Date()),today=cur,range=7,mode="size",ch=[],sugIdx=-1,editIdx=null,editDay=null;
+const qd=new URLSearchParams(location.search).get("d");let today=iso(new Date()),cur=/^\d{4}-\d{2}-\d{2}$/.test(qd||"")?qd:today,range=7,mode="size",ch=[],sugIdx=-1,editIdx=null,editDay=null;
 const API="";
 const toLogin=()=>{location.href="/login"};
 const MK={rest:"Rest day",sick:"Sick",rain:"Rain",exam:"Exam",travel:"Travel",busy:"Busy",other:"Other"};
-let WD=new Set(),calM=new Date(new Date().getFullYear(),new Date().getMonth(),1);
 
 // Counted items get one unit (qty = how many); bowls/plates/glasses/packs get small/medium/large; spoons get tsp/tbsp.
 const COUNT=new Set(["piece","slice","egg","scoop","cup","biscuit","toffee"]);
@@ -330,10 +309,6 @@ function render(){
  $("dl").textContent=new Date(cur+"T00:00").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
  $("dt").value=cur;$("tg").value=S.target;showWelcome();
  const mk=(S.marks||{})[cur];$("dmk").textContent=mk?"Marked: "+(MK[mk.t]||"Other")+(mk.n?" · "+mk.n:""):"";
- $("mk-t").value=mk?mk.t:"";$("mk-n").value=mk?mk.n||"":"";
- $("mk-d").textContent=new Date(cur+"T00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
- if(render.c!==cur){render.c=cur;calM=new Date(cur+"T00:00");calM.setDate(1)}
- renderCal();
  $("kc").textContent=R(t.k);$("kt").textContent="/ "+R(tg)+" kcal";
  $("ring").style.setProperty("--pct",Math.min(100,t.k/tg*100));$("ring").classList.toggle("bad",over);
  $("st").textContent=!d.e.length?"Nothing logged yet.":over?"Over target by "+R(t.k-tg)+" kcal":t.k>tg?"Over by "+R(t.k-tg)+" kcal, within the 5% margin":R(tg-t.k)+" kcal left, within target";
@@ -372,19 +347,6 @@ function render(){
  renderWeek();charts(ser);
 }
 
-function renderCal(){
- const y=calM.getFullYear(),m=calM.getMonth(),lead=(new Date(y,m,1).getDay()+6)%7,n=new Date(y,m+1,0).getDate(),mks=S.marks||{};
- $("cm").textContent=calM.toLocaleDateString("en-GB",{month:"long",year:"numeric"});
- let h=["Mo","Tu","We","Th","Fr","Sa","Su"].map(d=>'<div class="dw">'+d+"</div>").join("")+"<span></span>".repeat(lead);
- for(let d=1;d<=n;d++){
-  const k=iso(new Date(y,m,d)),g=S.log[k],mk=mks[k],dots=[];
-  if(g&&g.e.length)dots.push(isOver(tot(g.e).k,g.t)?"var(--bad)":"var(--wt)");
-  if(WD.has(k))dots.push("var(--wa)");
-  h+='<button type="button" class="d'+(k===cur?" sel":"")+(k===today?" td":"")+(mk?" mk1":"")+'" data-k="'+k+'" aria-label="'+k+(mk?", "+(MK[mk.t]||"Other"):"")+'"'+(mk&&mk.n?' title="'+esc(mk.n)+'"':"")+'><span class="n">'+d+'</span><span class="dots">'+dots.map(c=>'<i style="background:'+c+'"></i>').join("")+"</span>"+(mk?'<span class="mkl">'+esc(MK[mk.t]||"Other")+"</span>":"")+"</button>";
- }
- $("cal").innerHTML=h;
-}
-function loadWD(){fetch(API+"/api/workouts").then(r=>r.ok?r.json():null).then(j=>{if(j&&j.workouts){WD=new Set(j.workouts.map(w=>w.date));renderCal()}}).catch(()=>{})}
 function showWelcome(){
  const on=!S.setup&&!Object.keys(S.log).length,el=$("welcome");
  if(on&&el.style.display!=="block"){$("wl-tg").value=S.target;$("wl-wt").value="";$("wl-msg").textContent=""}
@@ -544,11 +506,6 @@ $("wl-save").onclick=()=>{
  save();render();
 };
 $("wl-skip").onclick=()=>{S.setup=true;save();render()};
-$("cal").onclick=e=>{const b=e.target.closest("button.d");if(!b)return;cur=b.dataset.k;render()};
-$("cprev").onclick=()=>{calM.setMonth(calM.getMonth()-1);renderCal()};
-$("cnext").onclick=()=>{calM.setMonth(calM.getMonth()+1);renderCal()};
-$("mk-s").onclick=()=>{const t=$("mk-t").value,n=$("mk-n").value.trim().slice(0,60);S.marks=S.marks||{};if(!t)delete S.marks[cur];else S.marks[cur]={t,n};save();render()};
-$("mk-o").onclick=()=>scrollTo({top:0,behavior:"smooth"});
 $("prev").onclick=()=>shift(-1);$("next").onclick=()=>shift(1);
 $("today").onclick=()=>{cur=iso(new Date());render()};
 $("dt").onchange=e=>{if(e.target.value){cur=e.target.value;render()}};
@@ -596,7 +553,7 @@ const save=()=>{
   }).then(r=>{if(r.status===401)toLogin()}).catch(e => console.log("Backend offline, saved locally"));
 };
 
-function initUI() { sizes();preview();render();loadWD(); }
+function initUI() { sizes();preview();render(); }
 const DEFAULTS={log:{},custom:[],target:2000,updated:0,setup:false,profile:{},marks:{},goals:{}};
 let localCopy=null;
 try{localCopy=JSON.parse(localStorage.getItem("ct1")||"null")}catch(e){}

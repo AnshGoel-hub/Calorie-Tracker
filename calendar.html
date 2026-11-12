@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calendar · Calorie Tracker</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#f5f6f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#12151a" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Calories">
+<script>try{var t=localStorage.getItem("ct-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f6f7;--pn:#e9edf0;--card:#fff;--tx:#15181c;--mu:#5d6670;--bd:#d6dbe0;--ac:#f2b705;--on:#1a1400;--bad:#cf3f2b;--wt:#1f8a70;--wa:#2a8fc7;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#12151a;--pn:#1a1f26;--card:#1f252d;--tx:#e9edf1;--mu:#9aa5b1;--bd:#2b323b;--bad:#f0705c;--wt:#4cc2a1;--wa:#5ab6ea}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#12151a;--pn:#1a1f26;--card:#1f252d;--tx:#e9edf1;--mu:#9aa5b1;--bd:#2b323b;--bad:#f0705c;--wt:#4cc2a1;--wa:#5ab6ea}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 "Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums}
+.w{max-width:1120px;margin:0 auto;padding:20px 18px 40px}
+h1{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0}h2{font-size:18px;font-weight:650;margin:0 0 12px}h3{font-size:13px;margin:16px 0 6px;color:var(--mu);font-weight:500}
+a{color:var(--mu)}.sub{color:var(--mu);font-size:13px}
+.top{padding-bottom:18px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:18px}
+.cg{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start}
+input,select,button,.btn{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:8px 10px;min-width:0}
+input,select{width:100%}input:focus,select:focus,button:focus-visible,.btn:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+button,.btn{cursor:pointer;text-decoration:none;display:inline-block;touch-action:manipulation}button.pri{background:var(--ac);border-color:var(--ac);color:var(--on);font-weight:700}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.nav{display:flex;align-items:center;gap:8px}.nav #cm{flex:1;text-align:center;font-weight:650;font-size:16px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:14px}
+.cal .dw{font-size:11.5px;color:var(--mu);text-align:center;padding-bottom:2px}
+.cal button.d{min-height:64px;padding:4px 5px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:2px;text-align:left;font-size:13px}
+.cal button.d.sel{border-color:var(--ac);box-shadow:inset 0 0 0 1px var(--ac)}
+.cal button.d.td span.n{font-weight:800;text-decoration:underline;text-decoration-color:var(--ac);text-underline-offset:3px}
+.cal button.d.mk1{background:var(--pn)}
+.dots{display:flex;gap:3px;min-height:7px}.dots i{width:7px;height:7px;border-radius:50%}
+.mkl{font-size:10.5px;line-height:1.15;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:var(--mu);font-weight:600}
+.lg{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--mu);margin-top:12px}.lg i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:16px}.stats b{display:block;font-size:20px;font-weight:700;line-height:1.15}.stats span{font-size:12.5px;color:var(--mu)}
+.ln{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--bd);font-size:14px}.ln small{display:block;color:var(--mu);font-size:12px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.chips span{font-size:12px;background:var(--pn);padding:2px 8px;border-radius:20px}
+.ok{color:var(--wt)}.bd{color:var(--bad)}.m{min-height:18px;font-size:13px;margin-top:8px}
+.bn{display:none}
+@media(max-width:900px){.cg{grid-template-columns:1fr}}
+@media(max-width:780px){input,select{font-size:16px}button,.btn{min-height:40px}.cal button.d{min-height:56px}}
+</style><link rel="stylesheet" href="/ui.css"><script src="/nav.js" defer></script></head>
+<body><div class="w">
+<header class="top"><h1>Calendar</h1><div class="sub">Food, workouts and notes about your days, all in one place.</div></header>
+<div id="err" class="sub" role="alert"></div>
+<div class="cg">
+ <section class="card">
+  <div class="nav"><button id="cprev" type="button" aria-label="Previous month">‹</button><div id="cm"></div><button id="cnext" type="button" aria-label="Next month">›</button><button id="ctoday" type="button">Today</button></div>
+  <div class="cal" id="cal"></div>
+  <div class="lg"><span><i style="background:var(--wt)"></i>Food within target</span><span><i style="background:var(--bad)"></i>Over target</span><span><i style="background:var(--wa)"></i>Workout</span></div>
+  <div class="stats" id="msum"></div>
+ </section>
+ <section class="card" id="day">
+  <h2 id="dh"></h2>
+  <div id="dfood"></div>
+  <div id="dwk"></div>
+  <h3>Day marker</h3>
+  <div class="row"><select id="mt" aria-label="Day marker" style="flex:1"><option value="">No marker</option><option value="rest">Rest day</option><option value="sick">Sick</option><option value="rain">Rain</option><option value="exam">Exam</option><option value="travel">Travel</option><option value="busy">Busy</option><option value="other">Other</option></select></div>
+  <div class="row" style="margin-top:8px"><input id="mn" maxlength="60" placeholder="Reason or note (optional)" aria-label="Marker note" style="flex:1"><button class="pri" id="ms" type="button">Save</button></div>
+  <div class="m" id="mm" role="status"></div>
+  <div class="row" style="margin-top:6px"><a class="btn" id="openf" href="/">Open food log</a><a class="btn" href="/workouts#log">Log a workout</a></div>
+ </section>
+</div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const iso=d=>d.toLocaleDateString("en-CA"),R=n=>Math.round(n).toLocaleString("en-IN");
+const toLogin=()=>{location.href="/login"};
+const MK={rest:"Rest day",sick:"Sick",rain:"Rain",exam:"Exam",travel:"Travel",busy:"Busy",other:"Other"};
+const MARGIN=1.05,tot=e=>e.reduce((a,x)=>({k:a.k+x.k,p:a.p+x.p,c:a.c+x.c,f:a.f+x.f}),{k:0,p:0,c:0,f:0});
+const NAMES={};`bp|Bench press (barbell)
+dbp|Dumbbell bench press
+ibp|Incline press
+chf|Chest fly (cable/machine)
+ohp|Overhead press
+lr|Lateral raise
+rdf|Rear delt fly
+fcp|Face pull
+dl|Deadlift
+rdl|Romanian deadlift
+sq|Squat (barbell)
+lp|Leg press
+lex|Leg extension
+lcu|Leg curl
+hth|Hip thrust
+lg|Lunge / split squat
+cr|Calf raise
+lpd|Lat pulldown
+row|Seated cable row
+bor|Bent-over row
+dbr|One-arm dumbbell row
+shr|Shrug
+bc|Biceps curl
+hc|Hammer curl
+tpd|Triceps pushdown
+oe|Overhead triceps extension
+sk|Skull crusher
+cru|Cable crunch
+wc|Wrist curl
+hy|Back extension
+pu|Push-up
+pul|Pull-up
+chn|Chin-up
+dip|Dips
+crn|Crunch
+lrz|Leg raise
+bsq|Bodyweight squat
+pk|Plank
+wsit|Wall sit
+tm|Treadmill
+rn|Running (outdoor)
+wk|Walking (outdoor)
+el|Elliptical
+bk|Cycling
+rw|Rowing machine
+st|Stair climber`.split("\n").forEach(l=>{const a=l.split("|");NAMES[a[0]]=a[1]});
+let T={log:{},custom:[],target:2000,marks:{}},W={workouts:[],custom:[]};
+let today=iso(new Date()),cur=today,calM=new Date();calM.setDate(1);
+const exName=id=>NAMES[id]||((W.custom||[]).find(x=>x.id===id)||{}).n||"Exercise";
+const wkOn=k=>W.workouts.filter(w=>w.date===k);
+const wset=new Set();
+function wstat(w){let sets=0,vol=0,cm=0;(w.ex||[]).forEach(e=>e.sets.forEach(s=>{if(s.d&&s.k!==undefined)cm+=s.d;else if(s.t!=="w"){sets++;vol+=(s.w||0)*(s.r||0)}}));return{sets,vol,cm}}
+
+function drawGrid(){
+ const y=calM.getFullYear(),m=calM.getMonth(),lead=(new Date(y,m,1).getDay()+6)%7,n=new Date(y,m+1,0).getDate(),mks=T.marks||{};
+ $("cm").textContent=calM.toLocaleDateString("en-GB",{month:"long",year:"numeric"});
+ let h=["Mo","Tu","We","Th","Fr","Sa","Su"].map(d=>'<div class="dw">'+d+"</div>").join("")+"<span></span>".repeat(lead);
+ let fd=0,within=0,wk=0,mkd=0;
+ for(let d=1;d<=n;d++){
+  const k=iso(new Date(y,m,d)),g=T.log[k],mk=mks[k],dots=[];
+  if(g&&g.e&&g.e.length){const o=tot(g.e).k>g.t*MARGIN;dots.push(o?"var(--bad)":"var(--wt)");fd++;if(!o)within++}
+  if(wset.has(k)){dots.push("var(--wa)");wk+=wkOn(k).length}
+  if(mk)mkd++;
+  h+='<button type="button" class="d'+(k===cur?" sel":"")+(k===today?" td":"")+(mk?" mk1":"")+'" data-k="'+k+'" aria-label="'+k+(mk?", "+(MK[mk.t]||"Other"):"")+'"'+(mk&&mk.n?' title="'+esc(mk.n)+'"':"")+'><span class="n">'+d+'</span><span class="dots">'+dots.map(c=>'<i style="background:'+c+'"></i>').join("")+"</span>"+(mk?'<span class="mkl">'+esc(MK[mk.t]||"Other")+"</span>":"")+"</button>"}
+ $("cal").innerHTML=h;
+ const st=(b,s)=>"<div><b>"+b+"</b><span>"+s+"</span></div>";
+ $("msum").innerHTML=st(fd,"Days with food")+st(fd?within+" of "+fd:"–","Days within target")+st(wk,"Workouts")+st(mkd,"Marked days")}
+
+function drawDay(){
+ const d=new Date(cur+"T00:00"),g=T.log[cur],mk=(T.marks||{})[cur];
+ $("dh").textContent=d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+ $("openf").href="/?d="+cur;
+ let f="";
+ if(g&&((g.e&&g.e.length)||g.w||g.wt!=null)){
+  const t=tot(g.e||[]),over=t.k>g.t*MARGIN;
+  if(g.e&&g.e.length)f+='<div class="'+(over?"bd":"ok")+'" style="font-weight:650;font-size:16px">'+R(t.k)+" / "+R(g.t)+" kcal · "+(over?"over target":"within target")+'</div><div class="chips"><span>P '+t.p.toFixed(0)+" g</span><span>C "+t.c.toFixed(0)+" g</span><span>F "+t.f.toFixed(0)+" g</span>"+(g.w?"<span>"+g.w+" glasses water</span>":"")+(g.wt!=null?"<span>"+g.wt+" kg</span>":"")+"</div>"+
+   g.e.map(x=>'<div class="ln"><div>'+esc(x.n)+"<small>"+esc(x.m||"Snacks")+" · "+esc(x.l)+"</small></div><div>"+R(x.k)+" kcal</div></div>").join("");
+  else f+='<div class="chips">'+(g.w?"<span>"+g.w+" glasses water</span>":"")+(g.wt!=null?"<span>"+g.wt+" kg</span>":"")+"</div>"}
+ else f='<div class="sub">No food logged this day.</div>';
+ $("dfood").innerHTML=f;
+ const ws=wkOn(cur);
+ $("dwk").innerHTML="<h3>Workouts</h3>"+(ws.length?ws.map(w=>{const s=wstat(w),names=(w.ex||[]).map(e=>exName(e.id)).join(", ");
+  return '<div class="ln"><div><b>'+esc(w.name||names.slice(0,40))+"</b><small>"+esc(names)+'</small><div class="chips"><span>'+s.sets+" sets</span>"+(s.vol?"<span>"+R(s.vol)+" kg</span>":"")+(w.dur?"<span>"+w.dur+" min</span>":"")+"<span>≈ "+(w.kcal||0)+' kcal</span></div></div><a class="btn" href="/workouts?w='+w.id+'">Details</a></div>'}).join(""):'<div class="sub">No workout this day.</div>');
+ $("mt").value=mk?mk.t:"";$("mn").value=mk?mk.n||"":"";$("mm").textContent=""}
+
+function draw(){drawGrid();drawDay()}
+async function saveMark(){
+ const t=$("mt").value,n=$("mn").value.trim().slice(0,60);
+ try{const r=await fetch("/api/data");if(r.status===401)return toLogin();if(!r.ok)throw 0;const F=await r.json();
+  F.marks=F.marks||{};if(!t)delete F.marks[cur];else F.marks[cur]={t,n};F.updated=Date.now();
+  const p=await fetch("/api/data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(F)});
+  if(p.status===401)return toLogin();if(!p.ok)throw 0;
+  T=F;draw();$("mm").textContent="Saved.";$("mm").className="m ok"}
+ catch(e){$("mm").textContent="Couldn’t save the marker.";$("mm").className="m bd"}}
+$("cal").onclick=e=>{const b=e.target.closest("button.d");if(!b)return;cur=b.dataset.k;draw();if(matchMedia("(max-width:900px)").matches)$("day").scrollIntoView({behavior:"smooth",block:"start"})};
+$("cprev").onclick=()=>{calM.setMonth(calM.getMonth()-1);drawGrid()};
+$("cnext").onclick=()=>{calM.setMonth(calM.getMonth()+1);drawGrid()};
+$("ctoday").onclick=()=>{cur=today;calM=new Date();calM.setDate(1);draw()};
+$("ms").onclick=saveMark;
+(async()=>{
+ try{const[a,b]=await Promise.all([fetch("/api/data"),fetch("/api/workouts")]);
+  if(a.status===401||b.status===401)return toLogin();
+  if(!a.ok||!b.ok)throw 0;
+  T=Object.assign(T,await a.json());W=Object.assign(W,await b.json());
+  W.workouts.forEach(w=>wset.add(w.date));
+ }catch(e){$("err").textContent="Couldn’t load your data. Try again in a moment.";return}
+ const q=new URLSearchParams(location.search).get("d");
+ if(/^\d{4}-\d{2}-\d{2}$/.test(q||"")){cur=q;calM=new Date(q+"T00:00");calM.setDate(1)}
+ draw();
+})();
+</script></body></html>

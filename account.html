@@ -35,11 +35,30 @@ button.bad{background:var(--bad);border-color:var(--bad);color:#fff;font-weight:
  .bn a.on{color:var(--tx);box-shadow:inset 0 2px 0 var(--ac)}
  body{padding-bottom:64px}.tl{display:none}
 }
-</style><script src="/nav.js" defer></script></head>
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+select{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:9px 10px;width:100%}select:focus{outline:2px solid var(--ac);outline-offset:1px}
+.btns{display:flex;gap:10px;flex-wrap:wrap}.btns button{margin-top:14px}
+@media(max-width:780px){select{font-size:16px}}
+</style><link rel="stylesheet" href="/ui.css"><script src="/nav.js" defer></script></head>
 <body><div class="w">
 <header class="top"><div><h1>Account</h1></div><button id="out" type="button">Log out</button></header>
 
 <section class="card"><h2>Signed in as</h2><div class="sub" id="em">…</div></section>
+
+<section class="card"><h2>Body metrics &amp; calorie target</h2>
+ <div class="sub">Used only to suggest a daily calorie target. Saved to your account.</div>
+ <form id="bf">
+  <div class="g2"><div><label for="ag">Age</label><input id="ag" type="number" min="18" max="100" inputmode="numeric"></div>
+   <div><label for="sx">Sex (needed by the formula)</label><select id="sx"><option value="">Choose…</option><option value="male">Male</option><option value="female">Female</option></select></div></div>
+  <div class="g2"><div><label for="ht">Height (cm)</label><input id="ht" type="number" min="120" max="230" inputmode="decimal"></div>
+   <div><label for="wt">Weight (kg)</label><input id="wt" type="number" min="30" max="250" step="0.1" inputmode="decimal"></div></div>
+  <label for="ac">Activity level</label><select id="ac"></select>
+  <label for="gl">Goal</label><select id="gl"></select>
+  <div class="btns"><button class="pri" type="submit">Save details</button><button type="button" id="sg">Suggest my target</button></div>
+  <div class="m" id="bm" role="status"></div>
+  <div id="sgb" style="display:none"><button class="pri" type="button" id="use"></button></div>
+ </form>
+</section>
 
 <section class="card"><h2>Change password</h2>
  <form id="pf">
@@ -66,6 +85,7 @@ button.bad{background:var(--bad);border-color:var(--bad);color:#fff;font-weight:
  </form>
 </section>
 </div>
+<script src="/goals.js"></script>
 <script>
 const $=id=>document.getElementById(id);
 const toLogin=()=>{location.href="/login"};
@@ -87,4 +107,25 @@ $("df").onsubmit=async e=>{e.preventDefault();
   if(r.status===401)return toLogin();
   if(!r.ok){say("dm",why(j,"Couldn’t delete the account."));return}
   clearLocal();toLogin()}catch(x){say("dm","Couldn’t reach the server.")}};
+
+// ---- body metrics + suggested target
+Goals.fill($("ac"),Goals.ACT,"light");Goals.fill($("gl"),Goals.GOAL,"maintain");
+let sug=0;
+const prof=()=>({age:+$("ag").value||"",sex:$("sx").value,height:+$("ht").value||"",weight:+$("wt").value||"",activity:$("ac").value,goal:$("gl").value});
+async function freshT(){const r=await fetch("/api/data");if(r.status===401){toLogin();throw 0}if(!r.ok)throw 1;return r.json()}
+async function putT(T){T.updated=Date.now();const r=await fetch("/api/data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(T)});if(r.status===401){toLogin();throw 0}if(!r.ok)throw 1}
+(async()=>{try{const T=await freshT(),p=T.profile||{},k=Object.keys(T.log||{}).sort().reverse().find(k=>T.log[k].wt);
+ $("ag").value=p.age||"";$("sx").value=p.sex||"";$("ht").value=p.height||"";
+ $("wt").value=k?T.log[k].wt:(p.weight||"");
+ if(p.activity)$("ac").value=p.activity;if(p.goal)$("gl").value=p.goal}catch(e){}})();
+$("bf").onsubmit=async e=>{e.preventDefault();
+ try{const T=await freshT();T.profile=Object.assign({},T.profile,prof());await putT(T);say("bm","Details saved.",true)}
+ catch(x){if(x!==0)say("bm","Couldn’t save your details.")}};
+$("sg").onclick=()=>{const r=Goals.calc(prof(),+$("wt").value);$("sgb").style.display="none";
+ if(r.err){say("bm",r.err);return}
+ sug=r.target;say("bm",r.note,true);$("use").textContent="Use "+r.target.toLocaleString("en-IN")+" kcal as my daily target";$("sgb").style.display="block"};
+$("use").onclick=async()=>{
+ try{const T=await freshT(),today=new Date().toLocaleDateString("en-CA");T.profile=Object.assign({},T.profile,prof());T.target=sug;
+  if(T.log&&T.log[today])T.log[today].t=sug;await putT(T);$("sgb").style.display="none";say("bm","Daily target set to "+sug.toLocaleString("en-IN")+" kcal.",true)}
+ catch(x){if(x!==0)say("bm","Couldn’t update your target.")}};
 </script></body></html>
