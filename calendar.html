@@ -27,15 +27,35 @@ input,select,button,.btn{font:inherit;color:var(--tx);background:var(--card);bor
 input,select{width:100%}input:focus,select:focus,button:focus-visible,.btn:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
 button,.btn{cursor:pointer;text-decoration:none;display:inline-block;touch-action:manipulation}button.pri{background:var(--ac);border-color:var(--ac);color:var(--on);font-weight:700}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.nav{display:flex;align-items:center;gap:8px}.nav #cm{flex:1;text-align:center;font-weight:650;font-size:16px}
-.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:14px}
-.cal .dw{font-size:11.5px;color:var(--mu);text-align:center;padding-bottom:2px}
-.cal button.d{min-height:64px;padding:4px 5px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:2px;text-align:left;font-size:13px}
-.cal button.d.sel{border-color:var(--ac);box-shadow:inset 0 0 0 1px var(--ac)}
-.cal button.d.td span.n{font-weight:800;text-decoration:underline;text-decoration-color:var(--ac);text-underline-offset:3px}
+.nav{display:flex;align-items:center;gap:8px}.nav #cm{flex:1;text-align:center;font-weight:650;font-size:17px;letter-spacing:-.01em}
+.nav button{height:40px;min-height:0;padding:0 14px;display:inline-grid;place-items:center;line-height:1}
+.nav button.ib,.dhead button.ib{width:40px;padding:0;border-radius:12px}
+.nav svg,.dhead svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:16px}
+.cal .dw{font-size:12px;color:var(--mu);text-align:center;padding-bottom:2px;font-weight:600}
+.cal .pad{min-height:1px}
+.cal button.d{aspect-ratio:1/1.08;min-height:52px;padding:6px 2px 5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:15px;font-weight:600;border-radius:14px;background:var(--card);line-height:1}
+.cal button.d .n{display:grid;place-items:center;min-width:28px;height:28px;border-radius:50%;font-variant-numeric:tabular-nums}
+.cal button.d.fut{color:var(--mu);font-weight:500}
+.cal button.d.sel{border-color:var(--ac);box-shadow:inset 0 0 0 1.5px var(--ac);background:color-mix(in srgb,var(--ac) 12%,var(--card))}
+.cal button.d.td .n{background:var(--ac);color:var(--on);font-weight:800}
 .cal button.d.mk1{background:var(--pn)}
-.dots{display:flex;gap:3px;min-height:7px}.dots i{width:7px;height:7px;border-radius:50%}
-.mkl{font-size:10.5px;line-height:1.15;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:var(--mu);font-weight:600}
+.cal button.d.mk1.sel{background:color-mix(in srgb,var(--ac) 12%,var(--pn))}
+.dots{display:flex;gap:4px;height:7px;align-items:center}.dots i{width:7px;height:7px;border-radius:50%}
+.mkl{display:none}
+.mkd{width:100%;text-align:center;font-size:9.5px;line-height:1;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:var(--mu);font-weight:600;padding:0 2px}
+@media(min-width:520px){.mkd{font-size:10.5px}}
+.dhead{display:flex;align-items:center;gap:8px;margin-bottom:12px}.dhead h2{flex:1;margin:0;line-height:1.25}
+.dhead button.ib{flex:none;height:36px;width:36px;min-height:0}
+.mh{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:650;margin:18px 0 2px}.mh span:last-child{color:var(--mu);font-weight:500;font-size:12.5px}
+.ln .nm{min-width:0;overflow-wrap:anywhere}.ln .kc{white-space:nowrap;font-weight:600;align-self:flex-start}
+.wo{display:flex;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--bd)}.wo .wm{flex:1;min-width:0}.wo .wm b{display:block;font-size:15px}
+.cl{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--mu);font-size:12.5px;margin-top:2px}
+.btn.sm{flex:none;display:inline-flex;align-items:center;gap:4px;padding:0 14px;height:34px;min-height:0;font-size:13px;font-weight:650;white-space:nowrap;background:var(--pn)}
+.btn.sm svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.btn.sm:hover{border-color:var(--mu)}
+.lg i.mk{border-radius:3px;background:var(--pn);border:1px solid var(--bd);width:10px;height:10px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
 .lg{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--mu);margin-top:12px}.lg i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:16px}.stats b{display:block;font-size:20px;font-weight:700;line-height:1.15}.stats span{font-size:12.5px;color:var(--mu)}
 .ln{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--bd);font-size:14px}.ln small{display:block;color:var(--mu);font-size:12px}
@@ -43,27 +63,27 @@ button,.btn{cursor:pointer;text-decoration:none;display:inline-block;touch-actio
 .ok{color:var(--wt)}.bd{color:var(--bad)}.m{min-height:18px;font-size:13px;margin-top:8px}
 .bn{display:none}
 @media(max-width:900px){.cg{grid-template-columns:1fr}}
-@media(max-width:780px){input,select{font-size:16px}button,.btn{min-height:40px}.cal button.d{min-height:56px}}
+@media(max-width:780px){input,select{font-size:16px}button,.btn{min-height:40px}.cal{gap:4px}.cal button.d{min-height:0;font-size:14px}.cal button.d .n{min-width:26px;height:26px}.card{padding:16px}}
 </style><link rel="stylesheet" href="/ui.css"><script src="/nav.js" defer></script></head>
 <body><div class="w">
 <header class="top"><h1>Calendar</h1><div class="sub">Food, workouts and notes about your days, all in one place.</div></header>
 <div id="err" class="sub" role="alert"></div>
 <div class="cg">
  <section class="card">
-  <div class="nav"><button id="cprev" type="button" aria-label="Previous month">‹</button><div id="cm"></div><button id="cnext" type="button" aria-label="Next month">›</button><button id="ctoday" type="button">Today</button></div>
+  <div class="nav"><button class="ib" id="cprev" type="button" aria-label="Previous month"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button><div id="cm"></div><button class="ib" id="cnext" type="button" aria-label="Next month"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button><button id="ctoday" type="button">Today</button></div>
   <div class="cal" id="cal"></div>
-  <div class="lg"><span><i style="background:var(--wt)"></i>Food within target</span><span><i style="background:var(--bad)"></i>Over target</span><span><i style="background:var(--wa)"></i>Workout</span></div>
+  <div class="lg"><span><i style="background:var(--wt)"></i>Food within target</span><span><i style="background:var(--bad)"></i>Over target</span><span><i style="background:var(--wa)"></i>Workout</span><span><i class="mk"></i>Marked day</span></div>
   <div class="stats" id="msum"></div>
  </section>
  <section class="card" id="day">
-  <h2 id="dh"></h2>
+  <div class="dhead"><button class="ib" id="dprev" type="button" aria-label="Previous day"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button><h2 id="dh"></h2><button class="ib" id="dnext" type="button" aria-label="Next day"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button></div>
   <div id="dfood"></div>
   <div id="dwk"></div>
   <h3>Day marker</h3>
   <div class="row"><select id="mt" aria-label="Day marker" style="flex:1"><option value="">No marker</option><option value="rest">Rest day</option><option value="sick">Sick</option><option value="rain">Rain</option><option value="exam">Exam</option><option value="travel">Travel</option><option value="busy">Busy</option><option value="other">Other</option></select></div>
   <div class="row" style="margin-top:8px"><input id="mn" maxlength="60" placeholder="Reason or note (optional)" aria-label="Marker note" style="flex:1"><button class="pri" id="ms" type="button">Save</button></div>
   <div class="m" id="mm" role="status"></div>
-  <div class="row" style="margin-top:6px"><a class="btn" id="openf" href="/">Open food log</a><a class="btn" href="/workouts#log">Log a workout</a></div>
+  <div class="acts"><a class="btn" id="openf" href="/">Open food log</a><a class="btn" href="/workouts#log">Log a workout</a></div>
  </section>
 </div>
 </div>
@@ -130,34 +150,42 @@ function wstat(w){let sets=0,vol=0,cm=0;(w.ex||[]).forEach(e=>e.sets.forEach(s=>
 function drawGrid(){
  const y=calM.getFullYear(),m=calM.getMonth(),lead=(new Date(y,m,1).getDay()+6)%7,n=new Date(y,m+1,0).getDate(),mks=T.marks||{};
  $("cm").textContent=calM.toLocaleDateString("en-GB",{month:"long",year:"numeric"});
- let h=["Mo","Tu","We","Th","Fr","Sa","Su"].map(d=>'<div class="dw">'+d+"</div>").join("")+"<span></span>".repeat(lead);
+ let h=["Mo","Tu","We","Th","Fr","Sa","Su"].map(d=>'<div class="dw">'+d+"</div>").join("")+'<span class="pad"></span>'.repeat(lead);
  let fd=0,within=0,wk=0,mkd=0;
  for(let d=1;d<=n;d++){
   const k=iso(new Date(y,m,d)),g=T.log[k],mk=mks[k],dots=[];
   if(g&&g.e&&g.e.length){const o=tot(g.e).k>g.t*MARGIN;dots.push(o?"var(--bad)":"var(--wt)");fd++;if(!o)within++}
   if(wset.has(k)){dots.push("var(--wa)");wk+=wkOn(k).length}
   if(mk)mkd++;
-  h+='<button type="button" class="d'+(k===cur?" sel":"")+(k===today?" td":"")+(mk?" mk1":"")+'" data-k="'+k+'" aria-label="'+k+(mk?", "+(MK[mk.t]||"Other"):"")+'"'+(mk&&mk.n?' title="'+esc(mk.n)+'"':"")+'><span class="n">'+d+'</span><span class="dots">'+dots.map(c=>'<i style="background:'+c+'"></i>').join("")+"</span>"+(mk?'<span class="mkl">'+esc(MK[mk.t]||"Other")+"</span>":"")+"</button>"}
+  h+='<button type="button" class="d'+(k===cur?" sel":"")+(k===today?" td":"")+(k>today?" fut":"")+(mk?" mk1":"")+'" data-k="'+k+'" aria-label="'+k+(mk?", "+(MK[mk.t]||"Other"):"")+(dots.length?", has activity":"")+'"'+(k===cur?' aria-pressed="true"':"")+(k===today?' aria-current="date"':"")+(mk&&mk.n?' title="'+esc(mk.n)+'"':"")+'><span class="n">'+d+'</span>'+'<span class="dots">'+dots.map(c=>'<i style="background:'+c+'"></i>').join("")+"</span>"+(mk?'<span class="mkd">'+esc(MK[mk.t]||"Other")+"</span>":"")+"</button>"}
  $("cal").innerHTML=h;
  const st=(b,s)=>"<div><b>"+b+"</b><span>"+s+"</span></div>";
  $("msum").innerHTML=st(fd,"Days with food")+st(fd?within+" of "+fd:"–","Days within target")+st(wk,"Workouts")+st(mkd,"Marked days")}
 
 function drawDay(){
- const d=new Date(cur+"T00:00"),g=T.log[cur],mk=(T.marks||{})[cur];
+ const d=new Date(cur+"T00:00"),g=T.log[cur],mk=(T.marks||{})[cur],ORDER=["Breakfast","Lunch","Snacks","Dinner"];
  $("dh").textContent=d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
  $("openf").href="/?d="+cur;
  let f="";
- if(g&&((g.e&&g.e.length)||g.w||g.wt!=null)){
-  const t=tot(g.e||[]),over=t.k>g.t*MARGIN;
-  if(g.e&&g.e.length)f+='<div class="'+(over?"bd":"ok")+'" style="font-weight:650;font-size:16px">'+R(t.k)+" / "+R(g.t)+" kcal · "+(over?"over target":"within target")+'</div><div class="chips"><span>P '+t.p.toFixed(0)+" g</span><span>C "+t.c.toFixed(0)+" g</span><span>F "+t.f.toFixed(0)+" g</span>"+(g.w?"<span>"+g.w+" glasses water</span>":"")+(g.wt!=null?"<span>"+g.wt+" kg</span>":"")+"</div>"+
-   g.e.map(x=>'<div class="ln"><div>'+esc(x.n)+"<small>"+esc(x.m||"Snacks")+" · "+esc(x.l)+"</small></div><div>"+R(x.k)+" kcal</div></div>").join("");
-  else f+='<div class="chips">'+(g.w?"<span>"+g.w+" glasses water</span>":"")+(g.wt!=null?"<span>"+g.wt+" kg</span>":"")+"</div>"}
+ const extra=g?(g.w?"<span>"+g.w+" glasses water</span>":"")+(g.wt!=null?"<span>"+g.wt+" kg</span>":""):"";
+ if(g&&g.e&&g.e.length){
+  const t=tot(g.e),over=t.k>g.t*MARGIN;
+  f+='<div class="'+(over?"bd":"ok")+'" style="font-weight:650;font-size:16px">'+R(t.k)+" / "+R(g.t)+" kcal · "+(over?"over target":"within target")+'</div><div class="chips"><span>P '+t.p.toFixed(0)+" g</span><span>C "+t.c.toFixed(0)+" g</span><span>F "+t.f.toFixed(0)+" g</span>"+extra+"</div>";
+  const by={};g.e.forEach(x=>{const m=x.m||"Snacks";(by[m]=by[m]||[]).push(x)});
+  f+=ORDER.concat(Object.keys(by).filter(m=>!ORDER.includes(m))).filter(m=>by[m]).map(m=>
+   '<div class="mh"><span>'+esc(m)+"</span><span>"+R(by[m].reduce((a,x)=>a+x.k,0))+" kcal</span></div>"+
+   by[m].map(x=>'<div class="ln"><div class="nm">'+esc(x.n)+"<small>"+esc(x.l)+'</small></div><div class="kc">'+R(x.k)+" kcal</div></div>").join("")).join("")}
+ else if(extra)f='<div class="chips">'+extra+'</div><div class="sub">No food logged this day.</div>';
  else f='<div class="sub">No food logged this day.</div>';
  $("dfood").innerHTML=f;
  const ws=wkOn(cur);
  $("dwk").innerHTML="<h3>Workouts</h3>"+(ws.length?ws.map(w=>{const s=wstat(w),names=(w.ex||[]).map(e=>exName(e.id)).join(", ");
-  return '<div class="ln"><div><b>'+esc(w.name||names.slice(0,40))+"</b><small>"+esc(names)+'</small><div class="chips"><span>'+s.sets+" sets</span>"+(s.vol?"<span>"+R(s.vol)+" kg</span>":"")+(w.dur?"<span>"+w.dur+" min</span>":"")+"<span>≈ "+(w.kcal||0)+' kcal</span></div></div><a class="btn" href="/workouts?w='+w.id+'">Details</a></div>'}).join(""):'<div class="sub">No workout this day.</div>');
+  return '<div class="wo"><div class="wm"><b>'+esc(w.name||"Workout")+'</b><span class="cl">'+esc(names)+'</span><div class="chips"><span>'+s.sets+" sets</span>"+(s.vol?"<span>"+R(s.vol)+" kg</span>":"")+(w.dur?"<span>"+w.dur+" min</span>":"")+"<span>≈ "+(w.kcal||0)+' kcal</span></div></div><a class="btn sm" href="/workouts?w='+w.id+'">Details<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a></div>'}).join(""):'<div class="sub">No workout this day.</div>');
  $("mt").value=mk?mk.t:"";$("mn").value=mk?mk.n||"":"";$("mm").textContent=""}
+
+function shiftDay(n){const x=new Date(cur+"T00:00");x.setDate(x.getDate()+n);cur=iso(x);
+ if(x.getMonth()!==calM.getMonth()||x.getFullYear()!==calM.getFullYear()){calM=new Date(x.getFullYear(),x.getMonth(),1)}
+ draw()}
 
 function draw(){drawGrid();drawDay()}
 async function saveMark(){
@@ -172,7 +200,7 @@ $("cal").onclick=e=>{const b=e.target.closest("button.d");if(!b)return;cur=b.dat
 $("cprev").onclick=()=>{calM.setMonth(calM.getMonth()-1);drawGrid()};
 $("cnext").onclick=()=>{calM.setMonth(calM.getMonth()+1);drawGrid()};
 $("ctoday").onclick=()=>{cur=today;calM=new Date();calM.setDate(1);draw()};
-$("ms").onclick=saveMark;
+$("ms").onclick=saveMark;$("dprev").onclick=()=>shiftDay(-1);$("dnext").onclick=()=>shiftDay(1);
 (async()=>{
  try{const[a,b]=await Promise.all([fetch("/api/data"),fetch("/api/workouts")]);
   if(a.status===401||b.status===401)return toLogin();
