@@ -64,7 +64,7 @@ button,a,label,select{touch-action:manipulation}
 }
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px 18px;margin:14px 0 4px}.stats b{display:block;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.15}.stats span{font-size:12.5px;color:var(--mu)}
 .up{color:var(--wt)}.dn{color:var(--bad)}
-.ov{overflow-x:auto;max-height:380px;overflow-y:auto}.pt{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}.pt th{color:var(--mu);font-weight:500;text-align:left;padding:6px 10px 6px 0;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--card)}.pt td{padding:7px 10px 7px 0;border-bottom:1px solid var(--bd)}
+.ov{overflow-x:auto}.pt{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}.pt th{color:var(--mu);font-weight:500;text-align:left;padding:6px 10px 6px 0;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--card)}.pt td{padding:7px 10px 7px 0;border-bottom:1px solid var(--bd)}
 .bdg{font-size:11px;background:var(--ac);color:var(--on);padding:1px 7px;border-radius:20px;font-weight:700;margin-right:6px}
 .prr{padding:8px 0;border-bottom:1px solid var(--bd);font-size:13.5px}
 .pane[hidden]{display:none}
@@ -118,6 +118,18 @@ div.br{cursor:default}div.br:hover{background:transparent}
 details.note{margin-bottom:16px}details.note summary{margin:0;color:var(--tx);font-weight:600}
 @media(max-width:900px){.mb{grid-template-columns:1fr}.mb-side{position:static}}
 @media(max-width:480px){.br{grid-template-columns:78px minmax(0,1fr) 36px 62px;gap:8px;padding:8px 6px}.seg2 button{padding:6px 11px}}
+
+/* strength page */
+.sa-top{margin-bottom:16px}.sa-top .stats{margin:4px 0 0}
+.sa-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:16px;margin-bottom:16px}
+.sa-row>.card{margin:0}.sa-row.w{grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr)}
+.sa-row h2{margin-bottom:2px}.sa-row .cw{margin-top:12px}
+.pesel{max-width:240px;padding:7px 12px;font-size:13px;border-radius:999px}
+.empty2{border:1px dashed var(--bd);border-radius:14px;padding:18px;margin-top:12px;color:var(--mu);font-size:13px;display:grid;gap:4px}.empty2 b{color:var(--tx);font-size:14px}
+#pst{margin-top:14px}
+.ov{overflow-x:auto}
+.pt td:nth-child(2){font-weight:650}
+@media(max-width:900px){.sa-row.w{grid-template-columns:1fr}}
 </style><link rel="stylesheet" href="/ui.css"><script src="/nav.js" defer></script></head>
 <body><div class="w">
 <header class="top">
@@ -211,19 +223,40 @@ details.note{margin-bottom:16px}details.note summary{margin:0;color:var(--tx);fo
 </div>
 
 <div id="p-strength" class="pane" hidden>
-<section class="card" id="sa">
- <div class="row" style="align-items:center;margin-bottom:4px"><h2 style="margin:0;flex:1">Strength analytics</h2>
-  <div class="tabs" style="flex:none" id="sg"><button data-r="30">30D</button><button data-r="90" class="on">90D</button><button data-r="365">1Y</button><button data-r="0">All</button></div></div>
- <div class="stats" id="sst"></div>
- <div class="g2">
-  <div><h3>Weekly volume (kg, weight × reps)</h3><div class="cw"><canvas id="sc1"></canvas></div></div>
-  <div><h3>Exercise frequency (sessions)</h3><div class="cw"><canvas id="sc2"></canvas></div></div>
-  <div><div style="display:flex;gap:10px;align-items:center;margin-bottom:6px"><h3 style="margin:0;flex:1">Progression</h3><select id="pe" style="flex:1.6" aria-label="Exercise"></select></div><div class="cw"><canvas id="sc3"></canvas></div></div>
-  <div><h3>Recent PRs</h3><div id="prl"></div></div>
+
+<section class="card sa-top">
+ <div class="mbh">
+  <div><h2 style="margin:0">Strength analytics</h2><div class="sub" id="ssum"></div></div>
+  <div class="seg2" id="sg" role="group" aria-label="Time range"><button type="button" data-r="30">30D</button><button type="button" data-r="90" class="on">90D</button><button type="button" data-r="365">1Y</button><button type="button" data-r="0">All</button></div>
  </div>
- <h3 style="margin-top:22px">Personal records</h3><div class="ov" id="prt"></div>
- <div class="sub" style="margin-top:14px">Est. 1RM uses the Epley formula, weight × (1 + reps/30), on working sets of up to 12 reps. A PR is a heavier top set than in any earlier session of that exercise (or a higher est. 1RM at the same weight; more reps for bodyweight moves). Warm-up sets are ignored. Volume counts weighted exercises only.</div>
+ <div class="stats" id="sst"></div>
 </section>
+
+<div class="sa-row">
+ <section class="card"><h2>Weekly volume</h2><div class="sub" id="vsub"></div><div class="cw"><canvas id="sc1"></canvas></div></section>
+ <section class="card"><h2>Most trained exercises</h2><div class="sub">Sessions per exercise, cardio not included</div><div class="cw"><canvas id="sc2"></canvas></div></section>
+</div>
+
+<div class="sa-row w">
+ <section class="card">
+  <div class="mbh"><h2 style="margin:0">Progression</h2><select id="pe" aria-label="Exercise" class="pesel"></select></div>
+  <div class="seg2" id="pm" role="group" aria-label="Metric"><button type="button" data-m="top" class="on">Top weight</button><button type="button" data-m="e1">Est. 1RM</button><button type="button" data-m="vol">Volume</button></div>
+  <div class="cw" id="pcw" style="margin-top:12px"><canvas id="sc3"></canvas></div>
+  <div class="empty2" id="pempty" hidden></div>
+  <div class="stats" id="pst"></div>
+ </section>
+ <section class="card"><h2>Recent PRs</h2><div class="sub">A heavier top set, or more reps for bodyweight moves</div><div id="prl" style="margin-top:8px"></div></section>
+</div>
+
+<section class="card">
+ <div class="mbh"><div><h2 style="margin:0">Personal records</h2><div class="sub" id="prc"></div></div><div style="flex:1;max-width:260px"><label for="prq" class="sr">Search exercises</label><input id="prq" type="search" placeholder="Search exercises" autocomplete="off"></div></div>
+ <div class="ov" id="prt"></div>
+ <button id="prmore" type="button" style="width:100%;margin-top:10px" hidden>Show all</button>
+</section>
+
+<details class="card note"><summary>How PRs and estimates are calculated</summary>
+ <div class="sub" style="margin-top:8px">Est. 1RM uses the Epley formula, weight × (1 + reps/30), on working sets of up to 12 reps. A PR is a heavier top set than in any earlier session of that exercise (or a higher est. 1RM at the same weight; more reps for bodyweight moves). Warm-up sets are ignored. Volume counts weighted exercises only.</div>
+</details>
 </div>
 </div>
 
@@ -458,7 +491,7 @@ function drawStats(){
  drawBars()}
 
 // ---- strength analytics
-let sr=90,pe="";
+let sr=90,pe="",pm="top",pq="",prAll=false;
 const mon=d=>{const x=new Date(d+"T00:00");x.setDate(x.getDate()-((x.getDay()+6)%7));return iso(x)};
 const e1=(w,r)=>w>0&&r>=1&&r<=12?(r===1?w:w*(1+r/30)):0;
 const cc=()=>{const cs=getComputedStyle(document.documentElement),v=n=>cs.getPropertyValue(n).trim();return{mu:v("--mu"),bd:v("--bd"),ac:v("--ac"),wt:v("--wt"),wa:v("--wa"),tx:v("--tx")}};
@@ -478,36 +511,60 @@ function hist(){const H={},PR=[];
    if(x.t==="wr"){if(p.top>0&&top>p.top)PR.push({date:w.date,id:e.id,k:"Weight",v:top,u:" kg",p:p.top});else if(p.e1>0&&b1>p.e1+.05)PR.push({date:w.date,id:e.id,k:"Est. 1RM",v:+b1.toFixed(1),u:" kg",p:+p.e1.toFixed(1)})}
    else if(mr>p.mr)PR.push({date:w.date,id:e.id,k:"Reps",v:mr,u:"",p:p.mr})}
  }));return{H,PR}}
+const MET={top:["Top weight","kg",a=>a.top],e1:["Est. 1RM","kg",a=>a.e1?+a.e1.toFixed(1):null],vol:["Session volume","kg",a=>a.vol],reps:["Best set","reps",a=>a.mr]};
 function drawProg(H){
  const ids=Object.keys(H).filter(i=>lib(i)).sort((a,b)=>H[b][H[b].length-1].date.localeCompare(H[a][H[a].length-1].date));
  if($("pe").dataset.k!==ids.join()){$("pe").innerHTML=ids.map(i=>`<option value="${i}">${esc(lib(i).n)}</option>`).join("");$("pe").dataset.k=ids.join()}
  if(!ids.includes(pe))pe=ids[0]||"";$("pe").value=pe;
- const c=cc(),h=pe?H[pe]:[],x=pe&&lib(pe);
- const ln=(label,data,col,dash)=>({label,data,borderColor:col,backgroundColor:col,tension:.25,pointRadius:3,borderWidth:2,borderDash:dash||[],spanGaps:true});
- const ds=!x?[]:x.t==="wr"?[ln("Top weight (kg)",h.map(a=>a.top),c.ac),ln("Est. 1RM (kg)",h.map(a=>a.e1?+a.e1.toFixed(1):null),c.wt,[5,4])]:[ln("Best set (reps)",h.map(a=>a.mr),c.ac)];
- chart("sc3",{type:"line",data:{labels:h.map(a=>a.date),datasets:ds},options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:"index",intersect:false},plugins:{legend:{display:ds.length>1,labels:{color:c.mu,boxWidth:12}}},scales:ax(c,false)}})}
+ const c=cc(),h=pe?H[pe]:[],x=pe&&lib(pe),wr=!!x&&x.t==="wr",m=wr?pm:"reps",mt=MET[m];
+ $("pm").hidden=!wr;$("pe").hidden=!ids.length;
+ document.querySelectorAll("#pm button").forEach(b=>b.classList.toggle("on",b.dataset.m===pm));
+ const vals=h.map(a=>mt[2](a)),nn=vals.filter(v=>v!=null&&v>0);
+ const chartOn=h.length>=2&&nn.length>=2;
+ $("pcw").hidden=!chartOn;$("pempty").hidden=chartOn;
+ if(!chartOn){
+  CH.sc3&&CH.sc3.destroy();delete CH.sc3;
+  $("pempty").innerHTML=!ids.length?"<b>No weighted exercises yet</b><span>Log a weighted or bodyweight exercise and its progress shows up here.</span>":"<b>Only one session of "+esc(x.n)+" so far</b><span>Log it again and the trend line appears here.</span>"}
+ else chart("sc3",{type:"line",data:{labels:h.map(a=>a.date),datasets:[{label:mt[0],data:vals,borderColor:c.ac,backgroundColor:c.ac+"33",fill:true,tension:.25,pointRadius:4,pointBackgroundColor:c.ac,borderWidth:2,spanGaps:true}]},
+  options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:"index",intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{label:q=>mt[0]+": "+q.parsed.y+" "+mt[1]}}},scales:ax(c,false)}});
+ const sb=(b,s)=>"<div><b>"+b+"</b><span>"+s+"</span></div>";
+ if(!nn.length){$("pst").innerHTML="";return}
+ const best=Math.max(...nn),first=nn[0],last=nn[nn.length-1],d=last-first,u=" "+mt[1],pc=first>0?Math.round(d/first*100):0;
+ $("pst").innerHTML=sb(best+u,"Best "+mt[0].toLowerCase())+sb(last+u,"Latest session")+
+  sb(h.length>1?'<span style="font-size:inherit;color:'+(d>=0?"var(--wt)":"var(--bad)")+'">'+(d>=0?"+":"−")+Math.abs(+d.toFixed(1))+u+"</span>":"–",h.length>1?"Change since first ("+(d>=0?"+":"−")+Math.abs(pc)+"%)":"Change since first")+sb(h.length,"Sessions logged")}
 function drawAnalytics(){
  const{H,PR}=hist(),c=cc(),dstr=n=>{const d=new Date();d.setDate(d.getDate()-n);return iso(d)};
  const cut=sr?dstr(sr-1):"",ws=W.workouts.filter(w=>!cut||w.date>=cut);
  let sets=0,vol=0;const cnt={};
- ws.forEach(w=>{const s=stat(w);sets+=s.sets;vol+=s.vol;w.ex.forEach(e=>{if(lib(e.id)&&e.sets.some(hasV))cnt[e.id]=(cnt[e.id]||0)+1})});
+ ws.forEach(w=>{const s=stat(w);sets+=s.sets;vol+=s.vol;w.ex.forEach(e=>{const x=lib(e.id);if(x&&x.t!=="dd"&&e.sets.some(hasV))cnt[e.id]=(cnt[e.id]||0)+1})});
  let dl="";
  if(sr){const A=dstr(2*sr-1),B=dstr(sr);let pv=0;W.workouts.filter(w=>w.date>=A&&w.date<=B).forEach(w=>pv+=stat(w).vol);
   if(pv>0){const p=(vol-pv)/pv*100;dl='<br><span class="'+(p>=0?"up":"dn")+'">'+(p>=0?"+":"−")+Math.abs(p).toFixed(0)+"%</span> vs previous "+sr+" days"}}
  const fr=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,8),prs=PR.filter(p=>!cut||p.date>=cut).length,sb=(b,s)=>"<div><b>"+b+"</b><span>"+s+"</span></div>";
+ $("ssum").textContent=sr===30?"Last 30 days":sr===90?"Last 90 days":sr===365?"Last year":"All time";
  $("sst").innerHTML=sb(ws.length,"Workouts")+sb(R(sets),"Working sets")+sb(R(vol)+" kg","Total volume"+dl)+sb(prs,"New PRs")+sb(fr[0]?esc(lib(fr[0][0]).n):"–",fr[0]?"Most trained · "+fr[0][1]+" sessions":"Most trained");
- // weekly volume
+ // weekly volume with an average line
  const first=cut||(W.workouts.length?W.workouts.reduce((m,w)=>w.date<m?w.date:m,W.workouts[0].date):iso(new Date())),wk=[];
  for(let d=new Date(mon(first)+"T00:00"),end=new Date();d<=end;d.setDate(d.getDate()+7))wk.push(iso(d));
  const wv={};wk.forEach(k=>wv[k]=0);ws.forEach(w=>{const k=mon(w.date);if(k in wv)wv[k]+=stat(w).vol});
- chart("sc1",{type:"bar",data:{labels:wk.map(k=>new Date(k+"T00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"})),datasets:[{data:wk.map(k=>Math.round(wv[k])),backgroundColor:c.ac,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},scales:ax(c)}});
- chart("sc2",{type:"bar",data:{labels:fr.map(a=>lib(a[0]).n),datasets:[{data:fr.map(a=>a[1]),backgroundColor:c.wa,borderRadius:3}]},options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{color:c.mu,precision:0},grid:{color:c.bd}},y:{ticks:{color:c.tx},grid:{display:false}}}}});
+ const avg=wk.length?vol/wk.length:0,sc=ax(c);sc.x.ticks.maxRotation=0;sc.x.ticks.autoSkip=true;
+ $("vsub").textContent=vol?"Weight × reps · average "+R(avg)+" kg per week (dashed line)":"Weight × reps, per week";
+ chart("sc1",{type:"bar",data:{labels:wk.map(k=>new Date(k+"T00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"})),datasets:[
+  {type:"bar",data:wk.map(k=>Math.round(wv[k])),backgroundColor:c.ac,borderRadius:4,order:2},
+  {type:"line",data:wk.map(()=>Math.round(avg)),borderColor:c.mu,borderDash:[6,4],borderWidth:1.5,pointRadius:0,fill:false,order:1}]},
+  options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},scales:sc}});
+ chart("sc2",{type:"bar",data:{labels:fr.map(a=>lib(a[0]).n),datasets:[{data:fr.map(a=>a[1]),backgroundColor:c.wa,borderRadius:4}]},options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{color:c.mu,precision:0},grid:{color:c.bd}},y:{ticks:{color:c.tx},grid:{display:false}}}}});
  drawProg(H);
- $("prl").innerHTML=PR.length?PR.slice(-8).reverse().map(p=>`<div class="prr"><span class="bdg">PR</span><b>${esc(lib(p.id).n)}</b> · ${p.k} ${p.v}${p.u}<div class="sub">${p.date} · previous best ${p.p}${p.u}</div></div>`).join(""):'<div class="sub">No PRs yet. They show up once you repeat an exercise and beat your earlier best.</div>';
- const rows=Object.keys(H).filter(i=>lib(i)).sort((a,b)=>H[b][H[b].length-1].date.localeCompare(H[a][H[a].length-1].date)).map(i=>{
+ $("prl").innerHTML=PR.length?PR.slice(-6).reverse().map(p=>`<div class="prr"><span class="bdg">PR</span><b>${esc(lib(p.id).n)}</b> · ${p.k} ${p.v}${p.u}<div class="sub">${p.date} · previous best ${p.p}${p.u}</div></div>`).join(""):'<div class="empty2"><b>No PRs yet</b><span>They show up once you repeat an exercise and beat your earlier best.</span></div>';
+ // personal records table
+ const q=pq.trim().toLowerCase();
+ const all=Object.keys(H).filter(i=>lib(i)).sort((a,b)=>H[b][H[b].length-1].date.localeCompare(H[a][H[a].length-1].date)),list=all.filter(i=>!q||lib(i).n.toLowerCase().includes(q)),shown=prAll||q?list:list.slice(0,10);
+ const rows=shown.map(i=>{
   const h=H[i],x=lib(i),mx=k=>Math.max(...h.map(a=>a[k])),b1=h.find(a=>a.e1===mx("e1")),kg=v=>v?R(v)+" kg":"–";
   return `<tr><td>${esc(x.n)}</td><td>${x.t==="wr"?kg(mx("top")):mx("mr")+" reps"}</td><td>${x.t==="wr"&&mx("e1")?kg(mx("e1"))+' <span class="sub">('+b1.bs+")</span>":"–"}</td><td>${x.t==="wr"?kg(mx("vol")):"–"}</td><td>${h[h.length-1].date}</td></tr>`}).join("");
- $("prt").innerHTML=rows?'<table class="pt"><thead><tr><th>Exercise</th><th>Heaviest / best</th><th>Est. 1RM</th><th>Best session volume</th><th>Last done</th></tr></thead><tbody>'+rows+"</tbody></table>":'<div class="sub">Log a weighted or bodyweight exercise to see records here.</div>'}
+ $("prt").innerHTML=rows?'<table class="pt"><thead><tr><th>Exercise</th><th>Heaviest / best</th><th>Est. 1RM</th><th>Best session volume</th><th>Last done</th></tr></thead><tbody>'+rows+"</tbody></table>":'<div class="sub">'+(q?"No exercises match your search.":"Log a weighted or bodyweight exercise to see records here.")+"</div>";
+ $("prc").textContent=all.length?(q?list.length+" of "+all.length+" exercises":all.length+(all.length===1?" exercise":" exercises")+" tracked"):"";
+ $("prmore").hidden=!(!q&&all.length>10);$("prmore").textContent=prAll?"Show fewer":"Show all "+all.length}
 
 // ---- wiring
 $("pg").onclick=e=>{const b=e.target.closest("button");if(b)tab(b.dataset.p)};
@@ -515,6 +572,9 @@ $("all").onclick=()=>tab("history");$("more").onclick=()=>{hlim+=20;drawHist()};
 $("hq").oninput=()=>{hq=$("hq").value;hlim=20;drawHist()};
 $("sg").onclick=e=>{const b=e.target.closest("button");if(!b)return;sr=+b.dataset.r;document.querySelectorAll("#sg button").forEach(x=>x.classList.toggle("on",x===b));drawAnalytics()};
 $("pe").onchange=()=>{pe=$("pe").value;drawProg(hist().H)};
+$("pm").onclick=e=>{const b=e.target.closest("button");if(!b)return;pm=b.dataset.m;drawProg(hist().H)};
+$("prq").oninput=()=>{pq=$("prq").value;drawAnalytics()};
+$("prmore").onclick=()=>{prAll=!prAll;drawAnalytics()};
 $("aex").onclick=addEx;$("exq").onkeydown=e=>{if(e.key==="Enter")addEx()};
 $("sv").onclick=saveWorkout;$("cx").onclick=()=>{editId=null;D=newDraft();drawLog();msg("")};
 $("bw").onchange=()=>{W.bw=+$("bw").value||0;saveW();est()};
