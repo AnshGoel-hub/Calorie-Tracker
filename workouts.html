@@ -33,10 +33,10 @@ button{cursor:pointer}button.pri{background:var(--ac);border-color:var(--ac);col
 label{display:block;font-size:12px;color:var(--mu);margin:0 0 4px}
 .row{display:flex;gap:10px;align-items:flex-end;margin-bottom:12px}.row>div{flex:1}
 .ex{border:1px solid var(--bd);border-radius:8px;padding:12px;margin:12px 0}.exh{display:flex;justify-content:space-between;align-items:center}
-.sr{display:flex;gap:8px;align-items:center;margin-top:8px}.sr input{flex:1}
+.setr{display:flex;gap:8px;align-items:center;margin-top:8px}.setr input{flex:1}
 .sn{width:36px;flex:none;text-align:center;padding:7px 0;font-size:13px}button.sn{background:var(--pn)}
 button.tw{background:var(--wa);color:#fff;border-color:var(--wa)}button.tf{background:var(--bad);color:#fff;border-color:var(--bad)}button.td{background:var(--wt);color:#fff;border-color:var(--wt)}
-.x{color:var(--mu);padding:4px 8px;border:0;background:transparent}.add{width:100%;margin-top:10px;background:var(--pn)}
+.x{color:var(--mu);padding:4px 8px;border:0;background:transparent}.addset{width:100%;margin-top:10px;background:var(--pn);padding:9px 14px}
 .hi{border:1px solid var(--bd);border-radius:8px;padding:12px;margin-bottom:10px;cursor:pointer}.hi.on{border-color:var(--ac);box-shadow:inset 3px 0 0 var(--ac)}
 .hh{display:flex;justify-content:space-between;gap:8px}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.chips span{font-size:12px;background:var(--pn);padding:2px 8px;border-radius:20px}
@@ -130,6 +130,26 @@ details.note{margin-bottom:16px}details.note summary{margin:0;color:var(--tx);fo
 .ov{overflow-x:auto}
 .pt td:nth-child(2){font-weight:650}
 @media(max-width:900px){.sa-row.w{grid-template-columns:1fr}}
+
+/* exercise picker sheet */
+button:disabled{opacity:.5;cursor:default}
+.sheet{position:fixed;inset:0;z-index:100;display:flex;align-items:flex-end;justify-content:center}
+.xs-bg{position:absolute;inset:0;background:rgba(10,12,16,.5)}
+.xs-p{position:relative;display:flex;flex-direction:column;width:100%;max-width:560px;height:min(86vh,720px);height:min(86dvh,720px);background:var(--card);border:1px solid var(--bd);border-radius:22px 22px 0 0;padding:16px 16px calc(14px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 40px rgba(0,0,0,.25)}
+@media(min-width:781px){.sheet{align-items:center}.xs-p{border-radius:22px}}
+.xs-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.xs-h b{font-size:17px}
+.xs-c{display:flex;gap:6px;overflow-x:auto;padding:10px 0 8px;scrollbar-width:none;flex:none}.xs-c::-webkit-scrollbar{display:none}
+.xs-c button{flex:none;white-space:nowrap;padding:6px 13px;font-size:13px;min-height:34px;background:var(--pn)}
+.xs-l{position:relative;flex:1;overflow-y:auto;overscroll-behavior:contain;margin:0 -6px;padding:0 6px}
+.xs-t{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;background:var(--card);padding:10px 6px 6px;font-size:13px;font-weight:700;color:var(--mu)}
+.xs-r{display:grid;grid-template-columns:minmax(0,1fr) 24px;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:transparent;border-radius:14px;padding:10px 12px;min-height:52px}
+.xs-r:hover{background:var(--pn)}
+.xs-r .xn{display:block;font-weight:600;font-size:14.5px}
+.xs-r .xm{display:block;font-size:12px;color:var(--mu);margin-top:1px}
+.xs-r .xk{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--bd);display:grid;place-items:center;font-size:13px;color:transparent}
+.xs-r.on{background:color-mix(in srgb,var(--ac) 16%,var(--card))}
+.xs-r.on .xk{background:var(--ac);border-color:var(--ac);color:var(--on)}
+.xs-f{flex:none;padding-top:12px}.xs-f button{width:100%}
 </style><link rel="stylesheet" href="/ui.css"><script src="/nav.js" defer></script></head>
 <body><div class="w">
 <header class="top">
@@ -148,10 +168,10 @@ details.note{margin-bottom:16px}details.note summary{margin:0;color:var(--tx);fo
    <div style="flex:.6"><label>Total min</label><input id="lu" type="number" min="0" placeholder="60" oninput="D.dur=this.value;est()"></div>
   </div>
   <div id="exs"></div>
-  <div class="row" style="margin-top:14px"><div><label>Add exercise</label><input id="exq" list="exl" placeholder="Search, e.g. Bench, Treadmill"><datalist id="exl"></datalist></div><button class="pri" id="aex" style="flex:none">Add</button></div>
+  <button class="pri" id="aex" type="button" style="width:100%;margin-top:14px">＋ Add exercise</button>
   <details><summary>Exercise not in the list? Create your own</summary>
-   <div class="row" style="margin-top:10px"><div><label>Name</label><input id="cn"></div><div><label>Type</label><select id="ct"><option value="wr">Weight &amp; reps</option><option value="br">Bodyweight reps</option><option value="dur">Duration</option><option value="dd">Distance &amp; duration</option></select></div></div>
-   <div class="row"><div><label>Primary muscle</label><select id="cp"></select></div><div><label>Secondary (hold Ctrl for several)</label><select id="cs" multiple size="4"></select></div></div>
+   <div class="row" style="margin-top:10px;align-items:flex-start"><div><label>Name</label><input id="cn"></div><div><label>Type</label><select id="ct"><option value="wr">Weight &amp; reps</option><option value="br">Bodyweight reps</option><option value="dur">Duration</option><option value="dd">Distance &amp; duration</option></select></div></div>
+   <div class="row" style="align-items:flex-start"><div><label>Primary muscle</label><select id="cp"></select></div><div><label>Secondary (hold Ctrl for several)</label><select id="cs" multiple size="4"></select></div></div>
    <button id="cadd" style="width:100%">Save exercise</button>
   </details>
   <div class="sub" id="est" style="margin:14px 0 8px"></div>
@@ -260,6 +280,17 @@ details.note{margin-bottom:16px}details.note summary{margin:0;color:var(--tx);fo
 </div>
 </div>
 
+<div class="sheet" id="xs" hidden>
+ <div class="xs-bg" id="xsb"></div>
+ <div class="xs-p" role="dialog" aria-modal="true" aria-label="Choose exercises">
+  <div class="xs-h"><b>Add exercises</b><button type="button" class="x" id="xsx" aria-label="Close">✕</button></div>
+  <input id="xsq" type="search" placeholder="Search, e.g. bench, triceps, treadmill" autocomplete="off">
+  <div class="xs-c" id="xsc"></div>
+  <div class="xs-l" id="xsl"></div>
+  <div class="xs-f"><button class="pri" id="xsok" type="button">Select exercises to add</button></div>
+ </div>
+</div>
+
 <script>
 const API="";
 const toLogin=()=>{location.href="/login"};
@@ -359,22 +390,37 @@ const inp=(i,j,k,ph)=>`<input type="number" min="0" step="any" placeholder="${ph
 function setRow(i,j,x){const s=D.ex[i].sets[j],tp=s.t||"n";let f;
  f=x.t==="wr"?inp(i,j,"w","kg")+inp(i,j,"r","reps"):x.t==="br"?inp(i,j,"r","reps"):x.t==="dur"?inp(i,j,"d","seconds"):inp(i,j,"d","minutes")+inp(i,j,"k","km");
  const tb=x.t==="dd"||x.t==="dur"?`<span class="sn">${j+1}</span>`:`<button class="sn t${tp}" title="Click to change: normal, warm-up, failure, drop set" onclick="cyc(${i},${j})">${tp==="n"?j+1:tp.toUpperCase()}</button>`;
- return `<div class="sr">${tb}${f}<button class="x" aria-label="Remove set" onclick="rmSet(${i},${j})">✕</button></div>`}
+ return `<div class="setr">${tb}${f}<button class="x" aria-label="Remove set" onclick="rmSet(${i},${j})">✕</button></div>`}
 function drawLog(){
  $("ld").value=D.date;$("ln").value=D.name;$("lu").value=D.dur;
  $("exs").innerHTML=D.ex.map((e,i)=>{const x=lib(e.id);if(!x)return"";
-  return `<div class="ex"><div class="exh"><b>${esc(x.n)}</b><button class="x" onclick="rmEx(${i})">Remove</button></div><div class="sub">${esc(last(e.id))}</div>${e.sets.map((s,j)=>setRow(i,j,x)).join("")}<button class="add" onclick="addSet(${i})">+ Add set</button></div>`}).join("")||'<div class="sub">No exercises yet. Add one below.</div>';
+  return `<div class="ex"><div class="exh"><b>${esc(x.n)}</b><button class="x" onclick="rmEx(${i})">Remove</button></div><div class="sub">${esc(last(e.id))}</div>${e.sets.map((s,j)=>setRow(i,j,x)).join("")}<button type="button" class="addset" onclick="addSet(${i})">+ Add set</button></div>`}).join("")||'<div class="sub">No exercises yet. Add one below.</div>';
  $("lt").textContent=editId?"Edit workout":"Log a workout";$("sv").textContent=editId?"Save changes":"Save workout";$("cx").style.display=editId?"":"none";est()}
 function est(){const k=kcal(D,BW());$("est").textContent=k?"≈ "+k+" kcal burned (estimate)":"Calorie estimate appears once you log sets."}
 function cyc(i,j){const s=D.ex[i].sets[j],o=["n","w","f","d"];s.t=o[(o.indexOf(s.t||"n")+1)%4];drawLog()}
 function addSet(i){const e=D.ex[i],p=e.sets[e.sets.length-1]||{};e.sets.push(Object.assign({},p));drawLog()}
 function rmSet(i,j){D.ex[i].sets.splice(j,1);drawLog()}
 function rmEx(i){D.ex.splice(i,1);drawLog()}
-function addEx(){const q=$("exq").value.trim().toLowerCase(),x=ALL().find(x=>x.n.toLowerCase()===q);
- if(!x){msg("Pick an exercise from the list, or create your own below.");return}
- const lw=lastW(x.id);msg("");
- D.ex.push({id:x.id,sets:lw?JSON.parse(JSON.stringify(lw.ex.find(e=>e.id===x.id).sets)):(x.t==="dd"||x.t==="dur"?[{}]:[{},{},{}])});
- $("exq").value="";drawLog()}
+// ---- exercise picker (sections by muscle group)
+const XORD=["ch","la","sh","bi","tr","fo","ab","tp","lb","gl","qd","ha","ca","cardio"],XN={la:"Back (lats)",tp:"Traps",cardio:"Cardio"},XT={wr:"Weight & reps",br:"Bodyweight",dur:"Timed",dd:"Distance & time"},XO={dl:"lb"};
+let XSEL=new Set(),XQ="";
+const xg=x=>x.t==="dd"?"cardio":(XO[x.id]||x.P[0]);
+const xl=g=>XN[g]||MN[g]||g;
+function pushEx(id){const x=lib(id);if(!x)return;const lw=lastW(id);
+ D.ex.push({id,sets:lw?JSON.parse(JSON.stringify(lw.ex.find(e=>e.id===id).sets)):(x.t==="dd"||x.t==="dur"?[{}]:[{},{},{}])})}
+function pickFoot(){const n=XSEL.size;$("xsok").textContent=n?"Add "+n+(n===1?" exercise":" exercises"):"Select exercises to add";$("xsok").disabled=!n}
+function drawPick(){
+ const q=XQ.trim().toLowerCase(),by={},cu=id=>(W.custom||[]).some(c=>c.id===id);
+ ALL().forEach(x=>{const hay=(x.n+" "+x.P.concat(x.S).map(m=>MN[m]).join(" ")+" "+xl(xg(x))).toLowerCase();if(q&&!hay.includes(q))return;(by[xg(x)]=by[xg(x)]||[]).push(x)});
+ const gs=XORD.filter(g=>by[g]);
+ $("xsc").innerHTML=gs.map(g=>`<button type="button" data-g="${g}">${esc(xl(g))}</button>`).join("");
+ $("xsl").innerHTML=gs.map(g=>`<div class="xs-g" data-g="${g}"><div class="xs-t"><span>${esc(xl(g))}</span><span>${by[g].length}</span></div>`+by[g].map(x=>{const al=x.S.map(m=>MN[m]).join(", ");
+  return `<button type="button" class="xs-r${XSEL.has(x.id)?" on":""}" data-id="${x.id}" aria-pressed="${XSEL.has(x.id)}"><span><span class="xn">${esc(x.n)}</span><span class="xm">${XT[x.t]||""}${al?" · also "+esc(al):""}${cu(x.id)?" · Custom":""}</span></span><span class="xk">✓</span></button>`}).join("")+"</div>").join("")||'<div class="sub" style="padding:20px 6px">No exercise matches. You can create your own under the Add exercise button.</div>';
+ pickFoot()}
+function openPick(){XSEL=new Set();XQ="";$("xsq").value="";drawPick();$("xs").hidden=false;document.body.style.overflow="hidden";$("xsl").scrollTop=0;
+ if(matchMedia("(pointer:fine)").matches)$("xsq").focus()}
+function closePick(){$("xs").hidden=true;document.body.style.overflow=""}
+function addEx(){openPick()}
 function saveWorkout(){
  const norm=s=>{const o={};["w","r","d","k"].forEach(k=>{if(s[k]!==undefined&&s[k]!=="")o[k]=+s[k]});if(s.t&&s.t!=="n")o.t=s.t;return o};
  const ex=D.ex.map(e=>({id:e.id,sets:e.sets.filter(hasV).map(norm)})).filter(e=>e.sets.length);
@@ -575,7 +621,13 @@ $("pe").onchange=()=>{pe=$("pe").value;drawProg(hist().H)};
 $("pm").onclick=e=>{const b=e.target.closest("button");if(!b)return;pm=b.dataset.m;drawProg(hist().H)};
 $("prq").oninput=()=>{pq=$("prq").value;drawAnalytics()};
 $("prmore").onclick=()=>{prAll=!prAll;drawAnalytics()};
-$("aex").onclick=addEx;$("exq").onkeydown=e=>{if(e.key==="Enter")addEx()};
+$("aex").onclick=openPick;
+$("xsq").oninput=()=>{XQ=$("xsq").value;drawPick();$("xsl").scrollTop=0};
+$("xsl").onclick=e=>{const b=e.target.closest(".xs-r");if(!b)return;const id=b.dataset.id;XSEL.has(id)?XSEL.delete(id):XSEL.add(id);b.classList.toggle("on",XSEL.has(id));b.setAttribute("aria-pressed",XSEL.has(id));pickFoot()};
+$("xsc").onclick=e=>{const b=e.target.closest("button");if(!b)return;const g=$("xsl").querySelector('.xs-g[data-g="'+b.dataset.g+'"]');if(g)$("xsl").scrollTo({top:g.offsetTop,behavior:"smooth"})};
+$("xsok").onclick=()=>{ALL().filter(x=>XSEL.has(x.id)).forEach(x=>pushEx(x.id));closePick();msg("");drawLog()};
+$("xsx").onclick=closePick;$("xsb").onclick=closePick;
+addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("xs").hidden)closePick()});
 $("sv").onclick=saveWorkout;$("cx").onclick=()=>{editId=null;D=newDraft();drawLog();msg("")};
 $("bw").onchange=()=>{W.bw=+$("bw").value||0;saveW();est()};
 $("rg").onclick=e=>{const b=e.target.closest("button");if(!b)return;range=+b.dataset.r;document.querySelectorAll("#rg button").forEach(x=>x.classList.toggle("on",x===b));drawStats()};
@@ -590,7 +642,7 @@ $("cadd").onclick=()=>{const n=$("cn").value.trim();if(!n){msg("Give the exercis
  W.custom=(W.custom||[]).concat({id:"c"+Date.now().toString(36),n,t:$("ct").value,P:[p],S:s,met:6});saveW();$("cn").value="";fillLists();msg("Exercise saved. You can add it now.")};
 $("theme").onclick=()=>{const d=document.documentElement,dark=d.dataset.theme?d.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches,n=dark?"light":"dark";d.dataset.theme=n;try{localStorage.setItem("ct-theme",n)}catch(e){}refresh()};
 if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener("change",refresh);
-function fillLists(){$("exl").innerHTML=ALL().map(x=>`<option value="${esc(x.n)}">`).join("");
+function fillLists(){
  const o=M.map(m=>`<option value="${m}">${MN[m]}</option>`).join("");$("cp").innerHTML=o;$("cs").innerHTML=o}
 
 $("out").onclick=async()=>{try{await fetch(API+"/api/logout",{method:"POST"})}catch(e){}try{localStorage.removeItem("ct1");localStorage.removeItem("wk1");localStorage.removeItem("ct-uid")}catch(e){}toLogin()};
