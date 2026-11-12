@@ -57,41 +57,55 @@ const MUSCLES=[
  {id:"sol",n:"Soleus",g:"ca",f:"Deep calf muscle that works when the knee is bent. Built for endurance.",t:"Seated or bent-knee calf raises.",ex:["cr"],sh:S([.10,.38,0],[.10,.16,0],[.026,.028],[.004,0,-.032])},
  {id:"tib",n:"Tibialis anterior (shin)",g:"ca",f:"Lifts the front of the foot and controls the landing of each step.",t:"Walking and incline treadmill work it.",ex:["wk","tm"],sh:S([.10,.46,0],[.10,.14,0],[.017,.022],[.012,0,.035])}
 ];
-const BODY=[
- E([0,1.69,.005],[.085,.105,.095]),S([0,1.50,0],[0,1.62,0],[.045,.045]),
- E([0,1.29,-.005],[.185,.17,.105]),E([0,1.09,0],[.145,.15,.09]),E([0,.95,-.01],[.165,.10,.10]),
- E([.235,1.41,0],[.05,.05,.05]),S([.235,1.40,0],[.29,1.13,0],[.038,.038]),
- S([.29,1.13,0],[.33,.87,0],[.032,.030]),E([.34,.80,0],[.022,.05,.035]),
- S([.09,.95,0],[.10,.50,0],[.07,.07]),E([.10,.50,0],[.05,.05,.05]),S([.10,.50,0],[.10,.10,0],[.045,.045]),
- E([.10,.05,.05],[.04,.04,.10])
+// Smooth body parts are lofted from horizontal elliptical rings: [y, rx, rz, centre x, centre z]
+const LOFT=[
+ {m:0,r:[[.84,.02,.02,0,-.01],[.88,.15,.09,0,-.01],[.95,.17,.105,0,-.012],[1.03,.15,.095,0,-.005],[1.10,.14,.09,0,0],[1.18,.15,.095,0,0],[1.26,.18,.105,0,-.005],[1.34,.19,.105,0,-.005],[1.41,.17,.09,0,-.005],[1.455,.10,.07,0,-.01],[1.47,.03,.03,0,-.01]]}, // torso
+ {m:0,r:[[1.43,.001,.001,0,0],[1.45,.05,.055,0,0],[1.55,.045,.05,0,.004],[1.62,.045,.05,0,.006],[1.64,.001,.001,0,.006]]}, // neck
+ {m:1,r:[[1.47,.001,.001,.235,0],[1.455,.045,.048,.232,0],[1.40,.047,.05,.24,0],[1.33,.04,.042,.255,0],[1.22,.037,.04,.275,0],[1.13,.035,.036,.29,0],[1.05,.034,.034,.303,0],[.95,.029,.03,.318,0],[.87,.021,.022,.33,0],[.84,.001,.001,.332,0]]}, // arm
+ {m:1,r:[[1.01,.001,.001,.09,0],[.98,.08,.085,.09,0],[.90,.078,.085,.09,0],[.75,.072,.078,.095,0],[.62,.06,.065,.10,0],[.52,.046,.05,.10,0],[.42,.05,.055,.10,-.008],[.32,.044,.05,.10,-.006],[.20,.033,.036,.10,0],[.10,.028,.03,.10,0],[.07,.02,.022,.10,0],[.065,.001,.001,.10,0]]} // leg
 ];
+// head, hands, feet stay simple ellipsoids
+const BODY=[E([0,1.69,.005],[.085,.105,.095]),E([.34,.80,0],[.022,.05,.035]),E([.10,.05,.05],[.04,.04,.10])];
+function loft(rows,sx){
+ const N=28,pos=[],idx=[];
+ rows.forEach(r=>{for(let j=0;j<N;j++){const a=j/N*Math.PI*2;pos.push(r[3]*sx+Math.cos(a)*r[1],r[0],r[4]+Math.sin(a)*r[2])}});
+ for(let i=0;i<rows.length-1;i++)for(let j=0;j<N;j++){
+  const a=i*N+j,b=i*N+(j+1)%N,c=(i+1)*N+j,d=(i+1)*N+(j+1)%N;
+  if(sx>0)idx.push(a,c,b,b,c,d);else idx.push(a,b,c,b,d,c)}
+ const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();return g}
 const MAP={};MUSCLES.forEach(m=>MAP[m.id]=m);
+const GROW=(typeof window!=='undefined'&&window.ANATOMY_GROW)||1.45;
+// Limb muscles are grown more than broad flat ones (lats, glutes, traps) so nothing balloons
+const KID={lat:1,glute_max:1.05,trap_up:1,trap_mid:1.1,trap_low:1.1,pec_clav:1.15,pec_ster:1.15,pec_cost:1.15,ab_up:1.3,ab_low:1.3,obl:1.15};
+const growOf=d=>KID[d.id]||(d.sh.k==="e"?1.2:GROW);
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 
 // ---------------------------------------------------------------- geometry
-function place(mesh,sh,sx){
+function place(mesh,sh,sx,g){
+ g=g||1;
  const V=THREE.Vector3;
  if(sh.k==="e"){
-  mesh.position.set(sh.c[0]*sx,sh.c[1],sh.c[2]);mesh.scale.set(sh.r[0],sh.r[1],sh.r[2]);
+  mesh.position.set(sh.c[0]*sx,sh.c[1],sh.c[2]);mesh.scale.set(sh.r[0]*g,sh.r[1]*g,sh.r[2]*g);
   mesh.rotation.set(sh.rot[0],sh.rot[1]*sx,sh.rot[2]*sx);
  }else{
   const a=new V(sh.a[0]*sx,sh.a[1],sh.a[2]),b=new V(sh.b[0]*sx,sh.b[1],sh.b[2]),d=b.clone().sub(a),len=d.length();
   mesh.position.copy(a).add(b).multiplyScalar(.5).add(new V(sh.off[0]*sx,sh.off[1],sh.off[2]));
-  mesh.scale.set(sh.r[0],len/2*1.08,sh.r[1]);
+  mesh.scale.set(sh.r[0]*g,len/2*(1.08+(g-1)*.5),sh.r[1]*g);
   mesh.quaternion.setFromUnitVectors(new V(0,1,0),d.normalize());
  }
 }
 function build(){
  const geo=new THREE.SphereGeometry(1,28,18),body=[],muscles=[];
- const bodyMat=new THREE.MeshPhongMaterial({color:0x999999,shininess:8,specular:0x111111});
+ const bodyMat=new THREE.MeshPhongMaterial({color:0x999999,shininess:8,specular:0x111111,side:THREE.DoubleSide});
  BODY.forEach(sh=>[1,-1].forEach(sx=>{
-  if(sx<0&&Math.abs(sh.k==="e"?sh.c[0]:sh.a[0])<.001&&Math.abs(sh.k==="e"?0:sh.b[0])<.001)return; // centre line parts once
+  if(sx<0&&sh.c[0]<.001)return;
   const m=new THREE.Mesh(geo,bodyMat);place(m,sh,sx);body.push(m)}));
+ LOFT.forEach(l=>(l.m?[1,-1]:[1]).forEach(sx=>body.push(new THREE.Mesh(loft(l.r,sx),bodyMat))));
  MUSCLES.forEach((def,i)=>{
   const mat=new THREE.MeshPhongMaterial({color:0x888888,shininess:25,specular:0x222222}),
    omat=new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.BackSide}),meshes=[];
   [1,-1].forEach(sx=>{
-   const m=new THREE.Mesh(geo,mat);place(m,def.sh,sx);m.userData.id=def.id;
+   const m=new THREE.Mesh(geo,mat);place(m,def.sh,sx,growOf(def));m.userData.id=def.id;
    const o=new THREE.Mesh(geo,omat);o.scale.setScalar(1.09);o.visible=false;m.add(o);m.userData.outline=o;
    meshes.push(m)});
   muscles.push({def,i,mat,omat,meshes});
