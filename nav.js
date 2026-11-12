@@ -8,7 +8,7 @@
     { id: "food", label: "Nutrition", path: "/", hash: "", bar: 1, ic: '<path d="M6 3v7a2 2 0 0 0 2 2v9M10 3v7a2 2 0 0 1-2 2M8 3v5M17 21V3c-2.5 1.5-3.5 4-3.5 8h3.5"/>' },
     { id: "workouts", label: "Workouts", path: "/workouts", hash: "", bar: 1, ic: '<path d="M6 7v10M3 9.5v5M18 7v10M21 9.5v5M6 12h12"/>' },
     { id: "calendar", label: "Calendar", path: "/calendar", hash: "", bar: 1, ic: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>' },
-    { id: "progress", label: "Progress", path: "/", hash: "#trends", bar: 0, ic: '<path d="M3 17l6-6 4 4 8-9M15 6h6v6"/>' },
+    { id: "progress", label: "Progress", path: "/progress", hash: "", bar: 0, ic: '<path d="M3 17l6-6 4 4 8-9M15 6h6v6"/>' },
     { id: "awards", label: "Achievements", short: "Awards", path: "/achievements", hash: "", bar: 1, ic: '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H4c0 3 1 4 4 5M16 6h4c0 3-1 4-4 5M12 13v4M8 21h8M10 17h4"/>' },
     { id: "settings", label: "Settings", path: "/account", hash: "", bar: 1, ic: '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>' }
   ];
@@ -54,8 +54,7 @@
   document.body.appendChild(bar);
 
   function current() {
-    var h = location.hash;
-    if (here === "/") return h === "#trends" ? "progress" : "food";
+    if (here === "/") return "food";
     for (var i = 0; i < ITEMS.length; i++) if (ITEMS[i].path !== "/" && ITEMS[i].path === here) return ITEMS[i].id;
     return "";
   }

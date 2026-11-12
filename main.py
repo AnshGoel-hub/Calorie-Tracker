@@ -426,6 +426,11 @@ def calendar_page():
     return FileResponse(BASE_DIR / "calendar.html")
 
 
+@app.get("/progress")
+def progress_page():
+    return FileResponse(BASE_DIR / "progress.html")
+
+
 @app.get("/achievements")
 def achievements_page():
     return FileResponse(BASE_DIR / "achievements.html")

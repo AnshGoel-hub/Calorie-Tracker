@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Progress · Calorie Tracker</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#f5f6f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#12151a" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Calories">
+<script>try{var t=localStorage.getItem("ct-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f6f7;--pn:#e9edf0;--card:#fff;--tx:#15181c;--mu:#5d6670;--bd:#d6dbe0;--ac:#f2b705;--on:#1a1400;--bad:#cf3f2b;--k:#d99a00;--p:#3d4fb5;--c:#c98a00;--f:#8e4a9e;--wt:#1f8a70;--wa:#2a8fc7;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#12151a;--pn:#1a1f26;--card:#1f252d;--tx:#e9edf1;--mu:#9aa5b1;--bd:#2b323b;--ac:#f2b705;--bad:#f0705c;--k:#f2b705;--p:#8b99f5;--c:#efb83a;--f:#c58bd6;--wt:#4cc2a1;--wa:#5ab6ea}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#12151a;--pn:#1a1f26;--card:#1f252d;--tx:#e9edf1;--mu:#9aa5b1;--bd:#2b323b;--ac:#f2b705;--bad:#f0705c;--k:#f2b705;--p:#8b99f5;--c:#efb83a;--f:#c58bd6;--wt:#4cc2a1;--wa:#5ab6ea}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 "Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums}
+.w{max-width:1120px;margin:0 auto;padding:20px 18px 40px}
+h1{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0}h2{font-size:18px;font-weight:650;margin:0 0 14px}h3{font-size:13px;margin:0 0 6px;color:var(--mu);font-weight:500}
+a{color:var(--mu)}.sub{color:var(--mu);font-size:13px}
+.top{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end;padding-bottom:18px}
+input,select,button{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:8px 10px;min-width:0}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+button{cursor:pointer;touch-action:manipulation}button:hover{border-color:var(--mu)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.row>.fx{flex:0 0 auto}
+.sec{margin-top:clamp(24px,4vw,40px)}.sec:first-of-type{margin-top:0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:18px 20px}.stats b{display:block;font-size:24px;font-weight:700;letter-spacing:-.02em;line-height:1.15}.stats span{font-size:12.5px;color:var(--mu)}
+.wk{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:28px;align-items:end}
+.up{color:var(--bad)}.dn{color:var(--wt)}
+.strip{display:flex;gap:8px;align-items:flex-end;height:96px}.strip i{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;height:100%;font-style:normal;font-size:11.5px;color:var(--mu)}.strip i.t{color:var(--tx);font-weight:700}.strip b{width:100%;border-radius:3px 3px 0 0;background:var(--ac);min-height:3px}.strip b.o{background:var(--bad)}.strip b.n{background:var(--bd)}
+.tabs{display:flex;gap:18px}.tabs button{border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;padding:4px 0;color:var(--mu)}.tabs button.on{color:var(--tx);font-weight:650;border-color:var(--ac)}
+.cg{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:24px;margin-top:16px}
+.cw{position:relative;height:190px}
+.chips{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-size:13px;color:var(--mu)}.chip{font-weight:600;color:var(--tx)}
+.chip.ok{color:var(--wt)}.chip.bad{color:var(--bad)}
+.hr{display:grid;grid-template-columns:1.2fr 1.4fr 1fr 2fr;gap:8px;padding:9px 0;border-top:1px solid var(--bd);font-size:13px;align-items:center}
+.hr.h{color:var(--mu);font-size:12.5px;border:0}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:18px}
+.tgt{display:flex;align-items:center;gap:8px}
+#bm{min-height:20px;margin-top:8px}
+@media(max-width:780px){.wk{grid-template-columns:1fr}}
+@media(max-width:560px){.hr{grid-template-columns:1fr 1fr}.hr.h{display:none}}
+@media(max-width:780px){input,select{font-size:16px}button{min-height:40px}}
+</style><link rel="stylesheet" href="/ui.css"><script src="/nav.js" defer></script></head>
+<body><div class="w">
+<header class="top">
+ <div><h1>Progress</h1><div class="sub">Weekly summary and trends from your food, water and weight logs.</div></div>
+ <div class="tgt"><button id="theme" type="button">Theme</button></div>
+</header>
+<div id="err" class="sub" role="alert"></div>
+
+<section class="sec">
+ <h2>Last 7 days</h2>
+ <div class="wk"><div class="stats" id="wkstats"></div><div class="strip" id="wkstrip"></div></div>
+</section>
+
+<section class="sec" id="trends">
+ <div class="row"><h2 style="margin:0">Trends</h2>
+  <div class="tabs fx" id="tabs"><button data-r="7" class="on">7D</button><button data-r="30">30D</button><button data-r="90">90D</button><button data-r="0">All</button></div></div>
+ <div class="chips" id="chips"></div>
+ <div class="cg">
+  <div><h3>Calories (dashed line = target; red dot = over target + 5%)</h3><div class="cw"><canvas id="cal"></canvas></div></div>
+  <div><h3>Protein (g)</h3><div class="cw"><canvas id="pro"></canvas></div></div>
+  <div><h3>Carbs (g)</h3><div class="cw"><canvas id="car"></canvas></div></div>
+  <div><h3>Fats (g)</h3><div class="cw"><canvas id="fat"></canvas></div></div>
+  <div><h3>Weight (kg, line = 7-day average)</h3><div class="cw"><canvas id="wtc"></canvas></div></div>
+  <div><h3>Water (glasses)</h3><div class="cw"><canvas id="wat"></canvas></div></div>
+ </div>
+</section>
+
+<section class="sec">
+ <h2>Target record</h2>
+ <div id="hist"></div>
+ <div class="row" style="margin-top:14px"><button class="fx" id="exp">Export backup</button><button class="fx" id="imp">Import backup</button><input id="impf" type="file" accept=".json,application/json" style="display:none"></div>
+ <div class="sub" id="bm" role="status"></div>
+</section>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const iso=d=>d.toLocaleDateString("en-CA");
+const R=n=>Math.round(n).toLocaleString("en-IN");
+const toLogin=()=>{location.href="/login"};
+let S={log:{},custom:[],target:2000},range=7,ch=[];
+const MARGIN=1.05,isOver=(k,t)=>k>t*MARGIN;
+const isRec=d=>!!d&&((d.e&&d.e.length>0)||d.w>0||d.wt!=null);
+const tot=e=>e.reduce((a,x)=>({k:a.k+x.k,p:a.p+x.p,c:a.c+x.c,f:a.f+x.f}),{k:0,p:0,c:0,f:0});
+
+function series(){
+ let n=range;const end=new Date();
+ if(!n){const ks=Object.keys(S.log).sort();n=ks.length?Math.max(7,Math.round((new Date(iso(end))-new Date(ks[0]))/864e5)+1):7}
+ const out=[];
+ for(let i=n-1;i>=0;i--){const d=new Date(end);d.setDate(end.getDate()-i);const k=iso(d);
+  out.push({k,l:d.toLocaleDateString("en-GB",{day:"numeric",month:"short"}),dd:S.log[k]&&S.log[k].e.length?S.log[k]:null,lg:S.log[k]||null})}
+ return out;
+}
+
+function charts(ser){
+ if(!window.Chart)return;
+ ch.forEach(c=>c.destroy());ch=[];
+ const cs=getComputedStyle(document.documentElement),v=n=>cs.getPropertyValue(n).trim(),mu=v("--mu"),bd=v("--bd"),bad=v("--bad");
+ [["cal","--k","k"],["pro","--p","p"],["car","--c","c"],["fat","--f","f"]].forEach(([id,cv,key])=>{
+  const col=v(cv),data=ser.map(s=>s.dd?+tot(s.dd.e)[key].toFixed(1):null);
+  const ds=[{data,borderColor:col,backgroundColor:col+"22",fill:true,tension:.3,spanGaps:true,borderWidth:2,
+   pointRadius:ser.length>31?2:4,
+   pointBackgroundColor:key==="k"?ser.map((s,i)=>s.dd&&isOver(data[i],s.dd.t)?bad:col):col,
+   pointBorderColor:key==="k"?ser.map((s,i)=>s.dd&&isOver(data[i],s.dd.t)?bad:col):col}];
+  if(key==="k")ds.push({data:ser.map(s=>s.dd?s.dd.t:S.target),borderColor:mu,borderDash:[6,4],borderWidth:1.5,pointRadius:0,fill:false});
+  ch.push(new Chart($(id),{type:"line",data:{labels:ser.map(s=>s.l),datasets:ds},options:{responsive:true,maintainAspectRatio:false,animation:false,
+   interaction:{mode:"index",intersect:false},plugins:{legend:{display:false}},
+   scales:{x:{ticks:{color:mu,maxTicksLimit:7},grid:{display:false}},y:{beginAtZero:true,ticks:{color:mu},grid:{color:bd}}}}}));
+ });
+ const lab=ser.map(s=>s.l),wts=ser.map(s=>s.lg&&s.lg.wt||null),wc=v("--wt"),ac=v("--wa");
+ const ma=wts.map((_,i)=>{const w=wts.slice(Math.max(0,i-6),i+1).filter(Boolean);return w.length?+(w.reduce((a,b)=>a+b,0)/w.length).toFixed(2):null});
+ const base=()=>({responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:"index",intersect:false},plugins:{legend:{display:false}},scales:{x:{ticks:{color:mu,maxTicksLimit:7},grid:{display:false}},y:{ticks:{color:mu},grid:{color:bd}}}});
+ ch.push(new Chart($("wtc"),{type:"line",data:{labels:lab,datasets:[
+  {data:wts,showLine:false,pointRadius:ser.length>31?2:4,pointBackgroundColor:wc+"88",pointBorderColor:wc+"88"},
+  {data:ma,borderColor:wc,borderWidth:2,pointRadius:0,tension:.3,spanGaps:true}]},options:base()}));
+ const wo=base();wo.scales.y.beginAtZero=true;
+ ch.push(new Chart($("wat"),{type:"bar",data:{labels:lab,datasets:[{data:ser.map(s=>s.lg&&s.lg.w?s.lg.w:null),backgroundColor:ac,borderRadius:3}]},options:wo}));
+}
+
+function renderWeek(){
+ const keys=(n,off)=>{const o=[];for(let i=n-1+off;i>=off;i--){const d=new Date();d.setDate(d.getDate()-i);o.push(iso(d))}return o};
+ const lg=k=>S.log[k]&&S.log[k].e.length?S.log[k]:null;
+ const w1=keys(7,0),w0=keys(7,7);
+ const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+ const kc=ks=>ks.map(lg).filter(Boolean).map(d=>tot(d.e).k);
+ const vals=(ks,f)=>ks.map(k=>S.log[k]&&f(S.log[k])).filter(Boolean);
+ const delta=(a,b,u,d)=>a==null||b==null?"":'<span class="'+(a>b?"up":"dn")+'">'+(a>b?"+":"−")+Math.abs(a-b).toFixed(d)+u+'</span> vs prior week';
+ const a1=avg(kc(w1)),a0=avg(kc(w0));
+ const inT=w1.filter(k=>{const d=lg(k);return d&&!isOver(tot(d.e).k,d.t)}).length,nl=w1.filter(lg).length;
+ const rec=k=>isRec(S.log[k]);
+ let st=0,d=new Date();if(!rec(iso(d)))d.setDate(d.getDate()-1);
+ while(rec(iso(d))){st++;d.setDate(d.getDate()-1)}
+ let best=0,run=0,prev=null;
+ Object.keys(S.log).filter(rec).sort().forEach(k=>{run=prev&&(new Date(k)-new Date(prev))/864e5===1?run+1:1;best=Math.max(best,run);prev=k});
+ const wt1=avg(vals(w1,x=>x.wt)),wt0=avg(vals(w0,x=>x.wt)),wa=avg(w1.filter(rec).map(k=>S.log[k].w||0)),nF=w1.filter(lg).length,nW=w1.filter(k=>S.log[k]&&S.log[k].w>0).length,nT=w1.filter(k=>S.log[k]&&S.log[k].wt!=null).length;
+ const stat=(b,s)=>'<div><b>'+b+'</b><span>'+s+'</span></div>';
+ $("wkstats").innerHTML=
+  stat(a1==null?"–":R(a1)+" kcal","Average per logged day<br>"+delta(a1,a0,"",0))+
+  stat(nl?inT+" of "+nl:"–","Logged days within target")+
+  stat(st+(st===1?" day":" days"),"Streak of days with any record · best "+best)+
+  stat(wt1==null?"–":wt1.toFixed(1)+" kg","Average weight<br>"+delta(wt1,wt0," kg",1))+
+  stat(wa==null?"–":wa.toFixed(1),"Water, glasses per recorded day")+
+  stat(nF+" · "+nW+" · "+nT,"Days with food · water · weight (of 7)");
+ $("wkstrip").innerHTML=w1.map(k=>{const q=lg(k),r=q?tot(q.e).k/q.t:0,h=Math.round(Math.min(1.4,r)/1.4*64);
+  return '<i class="'+(k===iso(new Date())?"t":"")+'"><b class="'+(!q?"n":r>MARGIN?"o":"")+'" style="height:'+(q?h:3)+'px" title="'+(q?R(tot(q.e).k)+" kcal":rec(k)?"No food logged":"Nothing recorded")+'"></b>'+new Date(k+"T00:00").toLocaleDateString("en-GB",{weekday:"short"}).slice(0,2)+'</i>'}).join("");
+}
+
+function render(){
+ const ser=series(),logged=ser.filter(s=>s.dd),ex=logged.filter(s=>isOver(tot(s.dd.e).k,s.dd.t)).length;
+ $("chips").innerHTML='<span class="chip">'+ser.filter(s=>isRec(s.lg)).length+' days recorded</span><span class="chip">'+logged.length+' with food</span><span class="chip ok">'+(logged.length-ex)+' within target</span><span class="chip bad">'+ex+' exceeded</span>'
+  +(logged.length?'<span class="chip">avg '+R(logged.reduce((a,s)=>a+tot(s.dd.e).k,0)/logged.length)+" kcal/day</span>":"");
+ $("hist").innerHTML=logged.length?'<div class="hr h"><div>Date</div><div>Calories</div><div>Status</div><div>Protein / Carbs / Fats</div></div>'+logged.slice().reverse().map(s=>{
+  const q=tot(s.dd.e),o=isOver(q.k,s.dd.t);
+  return '<div class="hr"><div>'+s.l+"</div><div>"+R(q.k)+" / "+R(s.dd.t)+'</div><div><span class="chip '+(o?"bad":"ok")+'">'+(o?"Exceeded +"+R(q.k-s.dd.t):"Within target")+"</span></div><div>"+q.p.toFixed(0)+" g / "+q.c.toFixed(0)+" g / "+q.f.toFixed(0)+" g</div></div>"}).join(""):'<div class="sub">No days logged in this range yet.</div>';
+ renderWeek();charts(ser);
+}
+
+$("tabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;range=+b.dataset.r;document.querySelectorAll("#tabs button").forEach(x=>x.classList.toggle("on",x===b));render()};
+
+// ---- backup
+const bmsg=t=>{$("bm").textContent=t};
+$("exp").onclick=()=>{
+ const blob=new Blob([JSON.stringify(S,null,1)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download="calorie-tracker-backup-"+iso(new Date())+".json";
+ document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)};
+$("imp").onclick=()=>$("impf").click();
+$("impf").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
+ r.onload=async()=>{try{const j=JSON.parse(r.result);if(!j.log)throw 0;
+  if(!confirm("Replace ALL current data with this backup? This can’t be undone."))return;
+  const N=Object.assign({log:{},custom:[],target:2000},j);N.updated=Date.now();
+  const p=await fetch("/api/data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(N)});
+  if(p.status===401)return toLogin();if(!p.ok)throw 1;
+  S=N;try{localStorage.setItem("ct1",JSON.stringify(S))}catch(x){}
+  bmsg("Backup imported.");render()}catch(x){bmsg("That file doesn’t look like a backup, or it couldn’t be saved.")}};
+ r.readAsText(f);e.target.value=""};
+
+// ---- theme
+const effTheme=()=>document.documentElement.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+function paintTheme(){const d=effTheme()==="dark";$("theme").textContent=d?"☀ Light":"☾ Dark";$("theme").setAttribute("aria-label","Switch to "+(d?"light":"dark")+" theme")}
+$("theme").onclick=()=>{const n=effTheme()==="dark"?"light":"dark";document.documentElement.dataset.theme=n;try{localStorage.setItem("ct-theme",n)}catch(e){}paintTheme();render()};
+if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{paintTheme();render()});
+paintTheme();
+
+(async()=>{
+ try{const r=await fetch("/api/data");if(r.status===401)return toLogin();if(!r.ok)throw 0;
+  S=Object.assign({log:{},custom:[],target:2000},await r.json())}
+ catch(e){$("err").textContent="Couldn’t load your data. Try again in a moment.";return}
+ render();
+})();
+</script></body></html>
