@@ -411,6 +411,11 @@ def ui_css():
     return FileResponse(BASE_DIR / "ui.css", media_type="text/css")
 
 
+@app.get("/anatomy.js")
+def anatomy_js():
+    return FileResponse(BASE_DIR / "anatomy.js", media_type="application/javascript")
+
+
 @app.get("/goals.js")
 def goals_js():
     return FileResponse(BASE_DIR / "goals.js", media_type="application/javascript")
