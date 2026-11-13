@@ -24,8 +24,9 @@ h1{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0}h2{font-size:18
 .top{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end;padding-bottom:18px}
 .sub{color:var(--mu);font-size:13px}
 .tgt{display:flex;align-items:center;gap:8px;color:var(--mu);font-size:13px}.tgt input{width:92px;text-align:right;font-weight:600}.tgt #theme{margin-left:10px;white-space:nowrap}
-input,select,button{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:8px 10px;min-width:0}
-input,select{width:100%}input:focus,select:focus,button:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+input,select,button,textarea{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:8px 10px;min-width:0}
+input,select,textarea{width:100%}input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+textarea{border-radius:14px;resize:vertical;line-height:1.4}
 button{cursor:pointer}button:hover{border-color:var(--mu)}
 button.pri{background:var(--ac);border-color:var(--ac);color:var(--on);font-weight:700}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.row>.fx{flex:0 0 auto}
@@ -67,7 +68,7 @@ details summary{cursor:pointer;color:var(--tx);font-size:13.5px;margin-top:16px;
 button,a,label,select{touch-action:manipulation}
 .bn{display:none}
 @media(max-width:780px){
- input,select{font-size:16px}
+ input,select,textarea{font-size:16px}
  button{min-height:40px}
  .bn{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px)}
  .bn a{flex:1;text-align:center;padding:12px 0;color:var(--mu);text-decoration:none;font-weight:600;font-size:14px}
@@ -132,7 +133,22 @@ button,a,label,select{touch-action:manipulation}
   <div id="bsize" class="row"><div><label>Unit</label><select id="size"></select></div><div><label>Quantity</label><input id="qty" type="number" min="0.5" step="0.5" value="1"></div></div>
   <div id="bg" style="display:none"><label>Weight (g)</label><input id="grams" type="number" min="1" step="1" placeholder="e.g. 50"></div>
   <div class="pv" id="pv">Pick a food to see its nutrition.</div>
-  <div id="lookbox" style="display:none;margin:-4px 0 10px"><label style="margin-top:0" for="ftype">What kind of food is it?</label><select id="ftype"><option value="cooked">Home-cooked dish</option><option value="packaged">Packaged / branded product</option><option value="restaurant">Restaurant / street food</option><option value="recipe">Homemade recipe (list ingredients in the name)</option></select><button id="look" style="width:100%;margin-top:8px">Estimate with Gemini</button></div>
+  <div id="lookbox" style="display:none;margin:-4px 0 10px">
+   <label style="margin-top:0" for="ftype">What kind of food is it?</label>
+   <select id="ftype">
+    <option value="cooked">Home-cooked dish</option>
+    <option value="fruit">Fruit / raw produce</option>
+    <option value="packaged">Packaged / branded product</option>
+    <option value="restaurant">Restaurant / street food</option>
+    <option value="recipe">Homemade recipe (list ingredients)</option>
+   </select>
+   <div id="recbox" style="display:none">
+    <label for="ing">Ingredients and quantities</label>
+    <textarea id="ing" rows="4" maxlength="800" placeholder="e.g. 2 eggs, 1 tsp oil, 50 g onion, 2 slices bread"></textarea>
+    <div class="sub" style="margin-top:4px">The food name above stays short (for example “Egg bhurji toast”). List what goes into it here.</div>
+   </div>
+   <button id="look" style="width:100%;margin-top:8px">Estimate with Gemini</button>
+  </div>
   <button class="pri" id="add" style="width:100%">Add to log</button>
   <button id="cancel" style="display:none;width:100%;margin-top:8px">Cancel edit</button>
   <details><summary>Food not in the list? Add your own</summary>
@@ -332,9 +348,14 @@ document.addEventListener("click", e => {
 ["size","qty","grams"].forEach(id=>$(id).addEventListener("input",preview));
 document.querySelectorAll('input[name="m"]').forEach(r=>r.addEventListener("change",e=>{mode=e.target.value;$("bsize").style.display=mode==="size"?"flex":"none";$("bg").style.display=mode==="g"?"block":"none";preview()}));
 
-const KL={cooked:"home-cooked",packaged:"packaged",restaurant:"restaurant",recipe:"homemade"};
-const KD={cooked:"typical home-cooked version",packaged:"packaged or branded product as sold in India (use the values on its nutrition label)",restaurant:"typical restaurant or street-food version (usually more oil, butter and sugar)",recipe:"homemade recipe: treat the text as a description of the dish and its ingredients, and estimate the finished cooked dish"};
+const KL={cooked:"home-cooked",fruit:"fruit",packaged:"packaged",restaurant:"restaurant",recipe:"homemade"};
+const KD={cooked:"typical home-cooked version",
+ fruit:"fresh fruit or raw produce, edible portion only (no peel, seeds or skin). For units use sizes of one piece (small, medium, large) or, for cut fruit, 'cup, chopped'",
+ packaged:"packaged or branded product as sold in India (use the values on its nutrition label)",
+ restaurant:"typical restaurant or street-food version (usually more oil, butter and sugar)",
+ recipe:"homemade dish made from the ingredient list provided. Estimate the finished cooked dish per 100 g (account for cooking oil and water loss), and give units for a typical serving"};
 let pendingEst=null;
+$("ftype").onchange=()=>{$("recbox").style.display=$("ftype").value==="recipe"?"block":"none"};
 function parseUnits(str){
  const us=String(str||"").split(",").map(t=>t.trim()).filter(Boolean).map(t=>{const m=t.match(/^(.*?)[:\s]\s*([\d.]+)\s*g?$/);return m?{n:(m[1].trim()||"serving").slice(0,20),g:+m[2]}:(/^[\d.]+$/.test(t)?{n:"serving",g:+t}:null)});
  return us.length&&us.every(Boolean)?us.slice(0,4):null;
@@ -357,9 +378,12 @@ function chkUnits(us,k){
 // Gemini is only ever called through the backend, so the API key never reaches the browser.
 async function lookup(){
  const name=$("food").value.trim();if(!name)return false;
- const kind=$("ftype").value;
+ const kind=$("ftype").value,ing=$("ing").value.trim();
+ if(kind==="recipe"&&!ing){$("pv").textContent="List the ingredients with quantities in the box above, then try again.";$("ing").focus();return false}
  $("pv").textContent="Asking Gemini to estimate “"+name+"”…";$("look").disabled=true;
- const promptText='Estimate nutrition for this food: "'+name+'". Type: '+KD[kind]+'. Reply with ONLY a JSON object in this shape: {"kcal":0,"protein":0,"carbs":0,"fat":0,"units":[{"name":"piece","grams":0}]}. kcal, protein, carbs and fat are per 100 g (macros in grams). units lists 1 to 3 natural ways people measure this food, with the grams in one of each. For items eaten by number (biscuit, toffee, piece, slice, egg) give ONE entry. For foods served in bowls, plates, glasses or packs give three entries named like "small bowl", "medium bowl", "large bowl". For things measured by spoon give "tsp" and "tbsp".';
+ const promptText='Estimate nutrition for this food: "'+name+'". Type: '+KD[kind]+'.'
+  +(kind==="recipe"?' Ingredients and quantities: '+ing+'.':'')
+  +' Reply with ONLY a JSON object in this shape: {"kcal":0,"protein":0,"carbs":0,"fat":0,"units":[{"name":"piece","grams":0}]}. kcal, protein, carbs and fat are per 100 g (macros in grams). units lists 1 to 3 natural ways people measure this food, with the grams in one of each. For items eaten by number (biscuit, toffee, piece, slice, egg) give ONE entry. For foods served in bowls, plates, glasses or packs give three entries named like "small bowl", "medium bowl", "large bowl". For things measured by spoon give "tsp" and "tbsp".';
  let why="the estimate failed.";
  try{
   for(let t=0;t<2;t++){
@@ -374,7 +398,7 @@ async function lookup(){
    if(bad){why=bad;continue}
    $("cn").value=name;$("ck").value=Math.round(k);$("cp").value=+p.toFixed(1);$("cc").value=+c.toFixed(1);$("cf").value=+f.toFixed(1);
    $("cu").value=us.map(u=>u.n+":"+u.g).join(", ");
-   pendingEst=kind;
+   pendingEst=kind;$("ing").value="";
    const d=document.querySelector("details");d.open=true;
    $("cnote").style.display="block";$("cnote").textContent="Estimated by Gemini as a "+KL[kind]+" food. These numbers are approximate. Check them, fix anything that looks off, then press Save food.";
    $("pv").textContent="Estimate ready. Review it under “Add your own”, save it, then add it to your log.";
