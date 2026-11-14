@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -58,8 +59,8 @@ def test_users_without_legacy_data_are_skipped(client, user):
 
 def test_admin_cli_lists_and_exports(settings, client, user, tmp_path):
     client.post("/api/data", json=tracker_doc())
-    env = {"DATABASE_URL": settings.database_url, "ADMIN_DATABASE_URL": settings.database_url,
-           "PATH": "/usr/bin:/bin", "NO_COLOR": "1"}
+    env = {**os.environ, "DATABASE_URL": settings.database_url, "ADMIN_DATABASE_URL": settings.database_url,
+           "NO_COLOR": "1"}
     run = lambda *a: subprocess.run([sys.executable, "scripts/admin.py", *a], cwd=BACKEND, env=env,  # noqa: E731
                                     capture_output=True, text=True)
     assert "a@example.com" in run("list").stdout
