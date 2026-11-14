@@ -6,3 +6,10 @@ backups/
 __pycache__/
 *.corrupt
 export-*.json
+*.db
+venv/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/

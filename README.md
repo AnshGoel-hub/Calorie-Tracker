@@ -1,96 +1,113 @@
 # Calorie Tracker
 
-A personal calorie, macro, water and weight tracker. A single-page frontend (`index.html`) talks to a small FastAPI backend (`main.py`) that stores your data in a local JSON file and, optionally, asks Google Gemini to estimate foods that aren't in the built-in list.
+An adaptive calorie and training tracker built for Indian diets and lifters. It logs food, water, weight and
+workouts, and it **learns your real maintenance calories** from your weight trend and intake, then adjusts your
+daily target.
 
-## Features
+## What makes it different
 
-- Log food by unit (piece, bowl, tsp, biscuit...) or exact grams, grouped by meal
-- Daily calorie ring and protein / carbs / fat totals, with a 5% margin before a day counts as over target
-- Water and weight tracking
-- "Last 7 days" summary: averages, streaks, and days recorded for food, water and weight
-- Trend charts for calories, macros, weight (with a 7-day average) and water
-- Gemini estimates for unknown foods (home-cooked, packaged, restaurant or homemade recipe), validated and shown for review before you save them
-- Add your own foods, export and import backups, light and dark theme
+| | |
+|---|---|
+| **Adaptive TDEE engine** | Energy balance on a smoothed weight trend, shrunk toward the Mifflin-St Jeor formula when data is thin. Pure functions in `app/services/tdee.py`, backtested on simulated users. |
+| **Indian-food-first estimates** | Katori/roti/plate units, plus Gemini estimates for foods, fruit and homemade recipes (ingredient list). Results are validated server-side and stored in a shared cache. |
+| **Training-aware** | Workouts, per-muscle weekly sets and a 3D muscle model live next to the nutrition data. |
 
-## Setup
+### Engine results (`python scripts/backtest_tdee.py`, 300 simulated users each)
 
-1. Create and activate a Python virtual environment.
-   ```bash
-   python -m venv venv
-   venv\Scripts\activate          # Windows
-   source venv/bin/activate       # macOS / Linux
-   ```
-2. Install the dependencies.
-   ```bash
-   pip install -r requirements.txt
-   ```
-   If your `requirements.txt` doesn't include them, run `pip install fastapi uvicorn`.
-3. (Optional, for Gemini estimates) Create a `.env` file next to `main.py`:
-   ```bash
-   copy .env.example .env         # Windows
-   cp .env.example .env           # macOS / Linux
-   ```
-   Open `.env` and replace `your-key-here` with your own key from Google AI Studio:
-   ```
-   GEMINI_API_KEY=your-key-here
-   ```
-   No quotes or spaces around the `=`. Without a key, everything works except the "Estimate with Gemini" button.
-4. Start the server.
-   ```bash
-   python main.py
-   ```
-5. Open **http://127.0.0.1:8000** in your browser.
+| Scenario | Engine error | Formula-only error |
+|---|---|---|
+| Formula off by 15%, 5% under-reporting | 165 kcal | 390 kcal |
+| Heavy under-reporting (-15%) | 246 kcal | 390 kcal |
+| Sparse logging (half the days) | 202 kcal | 390 kcal |
+| Noisy scale (sd 1.0 kg) | 192 kcal | 390 kcal |
 
-Do not open `index.html` by double-clicking it. The page must be loaded from the server, because the backend only accepts requests from its own address.
+These are simulated users (weight follows energy balance by construction), so they validate the algorithm, not
+real-world accuracy. Real-user validation is on the roadmap.
 
-Restart `python main.py` whenever you change `.env`.
+## Architecture
 
-## Using it
+```
+frontend/ (static HTML/JS)          backend/app/
+  index, workouts, progress, ...      api/        HTTP layer: auth, data (legacy), v1, account, pages
+        |                             services/   business logic: estimates, tdee, insights, legacy adapter
+        v                             models.py   SQLAlchemy schema      core/  config, db, security, logging
+   FastAPI  ---->  PostgreSQL (SQLite for dev)    migrations/  Alembic
+        \--------> Redis (optional: shared login throttling)
+        \--------> Gemini API (estimates, behind a cache + daily quota)
+```
 
-- **Add a food:** start typing in the Food box, pick a suggestion, choose the meal, then a unit and a quantity. Use "Exact grams" if you weighed it.
-- **Food not in the list:** pick what kind of food it is and press "Estimate with Gemini". The numbers appear under "Add your own" so you can check and edit them. Press "Save food", then add it to your log. Saved estimates are labelled "est." with their type.
-- **Your own food:** under "Add your own", enter kcal, protein, carbs and fat per 100 g, and units as `name:grams`, for example `piece:40` or `small bowl:100, medium bowl:150`.
-- **Edit or remove an entry:** use the pencil and cross next to it.
-- **Backup:** "Export backup" and "Import backup" are in the Target record section at the bottom.
+### Key decisions and trade-offs
 
-## Where your data lives
+- **Normalized schema instead of a JSON blob per user.** Rows can be queried (the TDEE engine aggregates intake in
+  SQL), indexed, and synced individually. Cost: a compatibility adapter (`services/legacy.py`) keeps the old
+  frontend working until it moves to `/api/v1`.
+- **Optimistic concurrency, not last-write-wins.** `PUT /api/v1/entries/{id}` carries the version the client saw;
+  a stale write gets `409` with the current copy. Deletes are tombstones, so `GET /api/v1/sync?since=` can tell
+  other devices what was removed.
+- **CSRF via Origin check + SameSite=Lax cookies.** State-changing requests with a foreign `Origin` are rejected.
+  No frontend changes needed. Browsers always send `Origin` on cross-site POSTs.
+- **Login throttling behind an interface** (`core/ratelimit.py`): in-memory by default, Redis when `REDIS_URL` is
+  set so limits hold across workers. Redis outages fail open rather than lock everyone out.
+- **Gemini calls are server-side only.** The server builds the prompt (user text is passed as quoted data),
+  validates every number (kcal range, macro sums, unit weights), retries once, and caches by
+  `(normalised name, type, ingredients)`. Only cache misses use the daily quota; `GET /api/v1/insights/cache`
+  reports the hit rate.
+- **Migrations are the only way the schema changes.** CI applies them to Postgres, runs `alembic check` (no drift
+  from the models) and round-trips downgrade/upgrade.
 
-- `tracker_data.json`, next to `main.py`, is the main copy.
-- A second copy is kept in your browser, so the app still works if the server is stopped. When the server is back, whichever copy was saved most recently is used.
+## Run it
 
-## Gemini and your API key
+```bash
+cd backend
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt
+cp .env.example .env            # set JWT_SECRET, GEMINI_API_KEY
+alembic upgrade head
+python -m app.main              # http://127.0.0.1:8000
+```
 
-- The key stays on the server. The browser never sees it and never calls Gemini directly.
-- Optional setting in `.env`: `GEMINI_MODEL=` to choose a different model. The default is `gemini-3.5-flash-lite`.
-- Estimates are approximate. Each one is checked for sensible values (calories match the macros, realistic serving weights), but accuracy is not guaranteed, especially for branded and restaurant foods. For packaged food, copying the per-100 g values from the label is more reliable.
+Move `manifest.webmanifest` and the icon PNGs from the old `static/` folder into `frontend/static/`.
 
-## Sharing this project
+With Docker: `docker compose up --build` (Postgres + Redis + app).
 
-Share `index.html`, `main.py`, `requirements.txt`, `.env.example`, `.gitignore` and this README. Do **not** share:
+### Migrating existing users
 
-- `.env` (your API key)
-- `tracker_data.json` (your personal data)
-- `venv/`
+```bash
+alembic upgrade head                      # keeps users/usage/user_data, adds the new tables
+python scripts/import_legacy.py --dry-run
+python scripts/import_legacy.py
+```
 
-Each person should use their own Gemini key. Keep the `.gitignore` file named exactly `.gitignore` so git skips `.env` and your data.
+### Tests and quality gates
 
-## Using it on your phone (same Wi-Fi)
+```bash
+pytest --cov=app        # 60 tests, ~96% coverage; CI fails under 90%
+ruff check .
+python scripts/backtest_tdee.py
+```
 
-1. In `main.py`, change the last line to `uvicorn.run(app, host="0.0.0.0", port=8000)` and restart.
-2. Allow the app through the firewall on private networks if prompted.
-3. Find your computer's local IP address (`ipconfig` on Windows) and open `http://<that-address>:8000` on your phone.
+### Admin
 
-There is no login, so only do this on a network you trust. Anyone who can reach the address can read your data and use your Gemini key.
+`python scripts/admin.py --help` (list, show, reset password, export, delete). Set `ADMIN_DATABASE_URL` in
+`backend/.env` to target production.
 
-## Troubleshooting
+## API
 
-| Problem | Likely cause and fix |
-| --- | --- |
-| "couldn't reach the backend" | The page isn't loaded from `http://127.0.0.1:8000`, or the server isn't running. Start `python main.py` and open that address. |
-| "the backend has no Gemini key" | `.env` is missing, misnamed (for example `.env.txt`), in the wrong folder, or the server wasn't restarted after editing it. |
-| "Gemini error 400 or 403" | The API key is wrong or has a typo. Create a new one in Google AI Studio. |
-| "Gemini error 404" | The model isn't available to your account. Set a different `GEMINI_MODEL` in `.env`. |
-| "Gemini error 429" | You've hit the usage limit. Wait and try again. |
-| Changes don't show after updating files | Hard-refresh the page with Ctrl+Shift+R and restart the server. |
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/signup`, `/api/login`, `/api/logout` | Auth (invite code at signup, throttled login) |
+| GET/POST | `/api/data`, `/api/workouts` | Legacy snapshot documents (deprecated) |
+| GET/POST | `/api/v1/entries`, PUT/DELETE `/api/v1/entries/{id}` | Food entries with optimistic concurrency |
+| GET | `/api/v1/sync?since=` | Change feed (entries incl. tombstones, day logs) |
+| POST | `/api/v1/estimate` | Gemini estimate (validated, cached) |
+| GET | `/api/v1/insights/tdee`, POST `.../apply` | Adaptive maintenance estimate and target |
+| GET | `/api/v1/insights/cache` | Estimate-cache hit rate |
+| POST/GET | `/api/account/*` | Change password, export, delete |
 
-The terminal running the server prints a line starting with `[estimate]` that explains any Gemini failure.
+## Roadmap
+
+1. Move the frontend to `/api/v1` (offline-first with the sync feed) and then to React/Next.js; retire `/api/data`.
+2. Sync workouts incrementally (currently entries and day logs only).
+3. Serve the built-in exercise catalogue and a verified Indian food catalogue from the database.
+4. Validate the TDEE engine on real users; add a Kalman filter variant and compare.
+5. Load test (k6) and publish p95 latency; add Prometheus metrics.
