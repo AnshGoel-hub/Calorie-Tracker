@@ -199,6 +199,39 @@ const API="";
 const toLogin=()=>{location.href="/login"};
 const MK={rest:"Rest day",sick:"Sick",rain:"Rain",exam:"Exam",travel:"Travel",busy:"Busy",other:"Other"};
 
+// ---- food entries live on the server (/api/v1/entries); each has an id and a version
+const E_API=API+"/api/v1/entries";
+let inflight=0;   // requests still being saved; background refreshes wait for 0
+async function ev(method,url,body){
+ inflight++;
+ try{
+  const r=await fetch(url,{method,headers:{"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined});
+  if(r.status===401){toLogin();throw "auth"}
+  return r
+ }finally{inflight--}}
+const toBody=(date,x)=>({date,meal:x.m||"Snacks",name:x.n,label:x.l||"",grams:x.g,kcal:x.k,protein:x.p,carbs:x.c,fat:x.f});
+const fromOut=o=>({id:o.id,v:o.version,n:o.name,l:o.label,g:o.grams,k:o.kcal,p:o.protein,c:o.carbs,f:o.fat,m:o.meal});
+// Entries and day facts (water, weight, markers, per-day target) are owned by the server
+function takeServerState(s,data){s.log=data.log||{};s.marks=data.marks||{};s.dv=data.dv||{}}
+async function refreshFromServer(){
+ try{const r=await fetch(API+"/api/data");if(r.status===401){toLogin();return}if(!r.ok)return;
+  takeServerState(S,await r.json());saveLocal();render()}catch(e){}}
+// Day facts are saved with PUT /api/v1/days/{date} and the version we last saw.
+// Saves for the same day run one after another, so quick clicks never race each other.
+const D_API=API+"/api/v1/days",dq={};
+function saveDay(k){
+ inflight++;
+ dq[k]=(dq[k]||Promise.resolve()).then(async()=>{
+  const g=S.log[k]||{},m=(S.marks||{})[k];
+  const body={water:g.w||0,weight_kg:g.wt!=null?g.wt:null,marker_type:m?m.t:null,marker_note:m?(m.n||""):null,
+   target_kcal:Math.max(500,g.t||S.target),version:(S.dv&&S.dv[k])||0};
+  const res=await ev("PUT",D_API+"/"+k,body);
+  if(res.status===409){await refreshFromServer();$("pv").textContent="That day changed on another device. Showing the latest values.";return}
+  if(!res.ok)throw 0;
+  const o=await res.json();S.dv=S.dv||{};S.dv[k]=o.version;saveLocal();
+ }).catch(e=>{if(e!=="auth")$("pv").textContent="Couldn’t save that change. Check your connection and try again."}).finally(()=>{inflight--});
+ return dq[k]}
+
 // Counted items get one unit (qty = how many); bowls/plates/glasses/packs get small/medium/large; spoons get tsp/tbsp.
 const COUNT=new Set(["piece","slice","egg","scoop","cup","biscuit","toffee"]);
 const SZ=["small ","medium ","large "];
@@ -292,8 +325,17 @@ window.edit = function(i) {
 };
 $("cancel").onclick = () => { endEdit(); $("food").value=""; $("grams").value=""; sizes(); preview(); };
 
-function del(i){
-  const d=S.log[cur]; d.e.splice(i,1);
+async function del(i){
+  const d=S.log[cur],x=d.e[i];
+  try{
+    const res=await ev("DELETE",E_API+"/"+x.id+"?version="+x.v);
+    if(res.status===409){
+      const j=await res.json();d.e[i]=fromOut(j.detail.current);
+      $("pv").textContent="That entry changed on another device. Check it, then delete again if you still want to.";
+      render();return}
+    if(!res.ok&&res.status!==404)throw 0;
+  }catch(e){if(e==="auth")return;$("pv").textContent="Couldn’t delete the entry. Try again.";return}
+  d.e.splice(i,1);
   if(!d.e.length && !d.w && d.wt==null) delete S.log[cur];
   if(editIdx!==null&&editDay===cur)endEdit();
   save(); render();
@@ -403,7 +445,24 @@ $("add").onclick=async()=>{
  if($("food").value.trim()&&!find($("food").value)&&!(await lookup()))return;
  const r=calc();if(!r){$("pv").textContent="Choose a food from the list and enter a size or weight first.";return}
  if(!S.log[cur])S.log[cur]={t:S.target,e:[],w:0,wt:null};
- if(editIdx!==null&&editDay===cur&&S.log[cur].e[editIdx])S.log[cur].e[editIdx]=r;else S.log[cur].e.push(r);
+ const day=cur;
+ try{
+  if(editIdx!==null&&editDay===day&&S.log[day].e[editIdx]){
+   const old=S.log[day].e[editIdx];
+   const res=await ev("PUT",E_API+"/"+old.id,{...toBody(day,r),version:old.v});
+   if(res.status===409){
+    const j=await res.json();S.log[day].e[editIdx]=fromOut(j.detail.current);
+    endEdit();render();
+    $("pv").textContent="This entry changed on another device. Showing the latest version; edit it again if you still want to.";
+    return}
+   if(!res.ok)throw 0;
+   S.log[day].e[editIdx]=fromOut(await res.json());
+  }else{
+   const res=await ev("POST",E_API,toBody(day,r));
+   if(!res.ok)throw 0;
+   S.log[day].e.push(fromOut(await res.json()));
+  }
+ }catch(e){if(e==="auth")return;$("pv").textContent="Couldn’t save the entry. Check your connection and try again.";return}
  endEdit();save();render();$("grams").value="";$("food").value="";sizes();preview();$("food").focus();
 };
 $("cadd").onclick=()=>{
@@ -418,28 +477,29 @@ $("cadd").onclick=()=>{
  save();$("food").value=n;sizes();preview();["cn","ck","cp","cc","cf","cu"].forEach(id=>$(id).value="");
  if(a.warn)$("pv").textContent="Saved, but "+a.warn+" Double-check the values.";
 };
-$("tg").onchange=()=>{const v=+$("tg").value;if(v>0){S.target=v;if(S.log[cur])S.log[cur].t=v;save();render()}};
+$("tg").onchange=()=>{const v=+$("tg").value;if(v>0){S.target=v;if(S.log[cur]){S.log[cur].t=v;saveDay(cur)}save();render()}};
 $("wl-save").onclick=()=>{
  const t=+$("wl-tg").value,w=parseFloat($("wl-wt").value);
  if(!(t>=500&&t<=10000)){$("wl-msg").textContent="Enter a daily target between 500 and 10,000 kcal.";return}
  S.target=t;S.setup=true;
- if(w>=20&&w<=300){const k=iso(new Date());S.log[k]={t:t,e:[],w:0,wt:w}}
- save();render();
+ let wk=null;
+ if(w>=20&&w<=300){wk=iso(new Date());S.log[wk]={t:t,e:[],w:0,wt:w}}
+ save();if(wk)saveDay(wk);render();
 };
 $("wl-skip").onclick=()=>{S.setup=true;save();render()};
 $("prev").onclick=()=>shift(-1);$("next").onclick=()=>shift(1);
 $("today").onclick=()=>{cur=iso(new Date());render()};
 $("dt").onchange=e=>{if(e.target.value){cur=e.target.value;render()}};
 
-$("w-plus").onclick = () => { if(!S.log[cur]) S.log[cur] = {t:S.target,e:[],w:0,wt:null}; S.log[cur].w = (S.log[cur].w || 0) + 1; save(); render(); };
-$("w-minus").onclick = () => { if(S.log[cur] && S.log[cur].w > 0) { S.log[cur].w--; prune(cur); save(); render(); } };
+$("w-plus").onclick = () => { if(!S.log[cur]) S.log[cur] = {t:S.target,e:[],w:0,wt:null}; S.log[cur].w = (S.log[cur].w || 0) + 1; save(); saveDay(cur); render(); };
+$("w-minus").onclick = () => { if(S.log[cur] && S.log[cur].w > 0) { S.log[cur].w--; prune(cur); save(); saveDay(cur); render(); } };
 const prune=k=>{const d=S.log[k];if(d&&!d.e.length&&!d.w&&d.wt==null)delete S.log[k]};
 $("weight-log").onchange = (e) => {
   const raw=e.target.value.trim(),v=parseFloat(raw);
   if(raw&&!(v>=20&&v<=300)){render();return}   // ignore impossible weights, restore the old value
   if(!raw&&!S.log[cur])return;
   if(!S.log[cur])S.log[cur]={t:S.target,e:[],w:0,wt:null};
-  S.log[cur].wt=raw?v:null;prune(cur);save();render();
+  S.log[cur].wt=raw?v:null;prune(cur);save();saveDay(cur);render();
 };
 
 if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{paintTheme();render()});
@@ -454,10 +514,12 @@ $("theme").onclick=()=>{const n=effTheme()==="dark"?"light":"dark";document.docu
 paintTheme();
 try{localStorage.removeItem("gemini_key")}catch(e){}
 const saveLocal=()=>{try{localStorage.setItem("ct1",JSON.stringify(S))}catch(e){}};
+// The snapshot only carries settings now (profile, target, custom foods). Entries and day facts are skipped
+// here and saved one by one through /api/v1.
 const save=()=>{
   S.updated=Date.now();
   saveLocal();
-  fetch(API+"/api/data", {
+  fetch(API+"/api/data?entries=skip&days=skip", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(S)
@@ -473,10 +535,10 @@ $("out").onclick=async()=>{try{await fetch(API+"/api/logout",{method:"POST"})}ca
 fetch(API+"/api/data")
   .then(res => {if(res.status===401){toLogin();throw "auth"}return res.json()})
   .then(data => {
-    // Keep whichever copy is newer, so offline edits are never overwritten
+    // Keep whichever copy is newer for settings, but entries and day facts always come from the server
     const useLocal = localCopy && (localCopy.updated||0) > (data.updated||0);
     S = Object.assign({}, DEFAULTS, useLocal ? localCopy : data);
-    if(useLocal) save();
+    if(useLocal){ takeServerState(S,data); save(); }
     initUI();
   })
   .catch(e => {
@@ -485,6 +547,12 @@ fetch(API+"/api/data")
     S = Object.assign({}, DEFAULTS, localCopy||{});
     initUI();
   });
+
+// Pick up changes made on another device when you come back to this tab
+document.addEventListener("visibilitychange",()=>{
+  if(document.hidden||editIdx!==null||inflight>0)return;
+  refreshFromServer();
+});
 
 // Roll over to the new day if the tab stays open past midnight
 setInterval(()=>{const n=iso(new Date());if(n!==today){if(cur===today)cur=n;today=n;render()}},60000);

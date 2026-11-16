@@ -140,7 +140,7 @@ el|Elliptical
 bk|Cycling
 rw|Rowing machine
 st|Stair climber`.split("\n").forEach(l=>{const a=l.split("|");NAMES[a[0]]=a[1]});
-let T={log:{},custom:[],target:2000,marks:{}},W={workouts:[],custom:[]};
+let T={log:{},custom:[],target:2000,marks:{},dv:{}},W={workouts:[],custom:[]};
 let today=iso(new Date()),cur=today,calM=new Date();calM.setDate(1);
 const exName=id=>NAMES[id]||((W.custom||[]).find(x=>x.id===id)||{}).n||"Exercise";
 const wkOn=k=>W.workouts.filter(w=>w.date===k);
@@ -188,13 +188,22 @@ function shiftDay(n){const x=new Date(cur+"T00:00");x.setDate(x.getDate()+n);cur
  draw()}
 
 function draw(){drawGrid();drawDay()}
+
+// The marker is saved with the day's other facts through PUT /api/v1/days/{date}, using the version we last saw.
 async function saveMark(){
  const t=$("mt").value,n=$("mn").value.trim().slice(0,60);
- try{const r=await fetch("/api/data");if(r.status===401)return toLogin();if(!r.ok)throw 0;const F=await r.json();
-  F.marks=F.marks||{};if(!t)delete F.marks[cur];else F.marks[cur]={t,n};F.updated=Date.now();
-  const p=await fetch("/api/data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(F)});
-  if(p.status===401)return toLogin();if(!p.ok)throw 0;
-  T=F;draw();$("mm").textContent="Saved.";$("mm").className="m ok"}
+ try{
+  const r=await fetch("/api/data");if(r.status===401)return toLogin();if(!r.ok)throw 0;
+  const F=await r.json(),g=(F.log||{})[cur]||{};
+  const body={water:g.w||0,weight_kg:g.wt!=null?g.wt:null,marker_type:t||null,marker_note:t?n:null,
+   target_kcal:Math.max(500,g.t||F.target||2000),version:(F.dv||{})[cur]||0};
+  const p=await fetch("/api/v1/days/"+cur,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  if(p.status===401)return toLogin();
+  const fresh=await fetch("/api/data");if(fresh.status===401)return toLogin();
+  if(fresh.ok){T=Object.assign(T,await fresh.json());draw()}
+  if(p.status===409){$("mm").textContent="This day changed on another device. It has been reloaded, so try again.";$("mm").className="m bd";return}
+  if(!p.ok)throw 0;
+  $("mm").textContent="Saved.";$("mm").className="m ok"}
  catch(e){$("mm").textContent="Couldn’t save the marker.";$("mm").className="m bd"}}
 $("cal").onclick=e=>{const b=e.target.closest("button.d");if(!b)return;cur=b.dataset.k;draw();if(matchMedia("(max-width:900px)").matches)$("day").scrollIntoView({behavior:"smooth",block:"start"})};
 $("cprev").onclick=()=>{calM.setMonth(calM.getMonth()-1);drawGrid()};
