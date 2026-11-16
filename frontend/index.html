@@ -349,11 +349,6 @@ document.addEventListener("click", e => {
 document.querySelectorAll('input[name="m"]').forEach(r=>r.addEventListener("change",e=>{mode=e.target.value;$("bsize").style.display=mode==="size"?"flex":"none";$("bg").style.display=mode==="g"?"block":"none";preview()}));
 
 const KL={cooked:"home-cooked",fruit:"fruit",packaged:"packaged",restaurant:"restaurant",recipe:"homemade"};
-const KD={cooked:"typical home-cooked version",
- fruit:"fresh fruit or raw produce, edible portion only (no peel, seeds or skin). For units use sizes of one piece (small, medium, large) or, for cut fruit, 'cup, chopped'",
- packaged:"packaged or branded product as sold in India (use the values on its nutrition label)",
- restaurant:"typical restaurant or street-food version (usually more oil, butter and sugar)",
- recipe:"homemade dish made from the ingredient list provided. Estimate the finished cooked dish per 100 g (account for cooking oil and water loss), and give units for a typical serving"};
 let pendingEst=null;
 $("ftype").onchange=()=>{$("recbox").style.display=$("ftype").value==="recipe"?"block":"none"};
 function parseUnits(str){
@@ -381,31 +376,25 @@ async function lookup(){
  const kind=$("ftype").value,ing=$("ing").value.trim();
  if(kind==="recipe"&&!ing){$("pv").textContent="List the ingredients with quantities in the box above, then try again.";$("ing").focus();return false}
  $("pv").textContent="Asking Gemini to estimate “"+name+"”…";$("look").disabled=true;
- const promptText='Estimate nutrition for this food: "'+name+'". Type: '+KD[kind]+'.'
-  +(kind==="recipe"?' Ingredients and quantities: '+ing+'.':'')
-  +' Reply with ONLY a JSON object in this shape: {"kcal":0,"protein":0,"carbs":0,"fat":0,"units":[{"name":"piece","grams":0}]}. kcal, protein, carbs and fat are per 100 g (macros in grams). units lists 1 to 3 natural ways people measure this food, with the grams in one of each. For items eaten by number (biscuit, toffee, piece, slice, egg) give ONE entry. For foods served in bowls, plates, glasses or packs give three entries named like "small bowl", "medium bowl", "large bowl". For things measured by spoon give "tsp" and "tbsp".';
  let why="the estimate failed.";
  try{
-  for(let t=0;t<2;t++){
-   const r=await fetch(API+"/api/estimate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:promptText})});
-   if(r.status===503){why="the backend has no Gemini key. Set GEMINI_API_KEY and restart it.";break}
-   if(!r.ok){let d="";try{d=(await r.json()).detail}catch(e){}why="the estimate service returned an error"+(d?" ("+d+")":"")+".";continue}
-   let j;try{j=JSON.parse((await r.json()).candidates[0].content.parts.map(p=>p.text||"").join(""))}catch(e){why="Gemini's reply wasn't readable.";continue}
-   const k=+j.kcal,p=+j.protein,c=+j.carbs,f=+j.fat;
-   const us=(Array.isArray(j.units)?j.units:[]).map(o=>({n:String(o.name||"").trim().slice(0,20),g:+o.grams})).filter(o=>o.n);
-   if(us.length&&us.every(u=>/^(small|medium|large)/.test(u.n)))us.sort((a,b)=>a.g-b.g);
-   const a=chk(k,p,c,f),bad=a.err||(a.warn&&"the "+a.warn)||chkUnits(us,k)||(k>0?"":"no calories were returned.");
-   if(bad){why=bad;continue}
-   $("cn").value=name;$("ck").value=Math.round(k);$("cp").value=+p.toFixed(1);$("cc").value=+c.toFixed(1);$("cf").value=+f.toFixed(1);
-   $("cu").value=us.map(u=>u.n+":"+u.g).join(", ");
+  // The server builds the prompt, validates the reply, caches it and enforces the daily limit.
+  const r=await fetch(API+"/api/v1/estimate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,kind,ingredients:ing})});
+  if(r.status===401){toLogin();return false}
+  const j=await r.json().catch(()=>({}));
+  if(r.ok){
+   $("cn").value=name;$("ck").value=j.kcal;$("cp").value=j.protein;$("cc").value=j.carbs;$("cf").value=j.fat;
+   $("cu").value=j.units.map(u=>u.name+":"+u.grams).join(", ");
    pendingEst=kind;$("ing").value="";
    const d=document.querySelector("details");d.open=true;
-   $("cnote").style.display="block";$("cnote").textContent="Estimated by Gemini as a "+KL[kind]+" food. These numbers are approximate. Check them, fix anything that looks off, then press Save food.";
+   $("cnote").style.display="block";
+   $("cnote").textContent="Estimated by Gemini as a "+KL[kind]+" food"+(j.cached?" (from the shared cache)":"")+". These numbers are approximate. Check them, fix anything that looks off, then press Save food."+(j.warning?" Note: "+j.warning+".":"");
    $("pv").textContent="Estimate ready. Review it under “Add your own”, save it, then add it to your log.";
    $("look").disabled=false;d.scrollIntoView({block:"nearest"});return false;
   }
+  why=typeof j.detail==="string"?j.detail:(r.status===503?"the server has no Gemini key.":"the estimate service returned an error.");
  }catch(e){why="couldn't reach the backend."}
- $("pv").textContent="Couldn't get a reliable estimate: "+why+" You can add the food yourself under “Add your own”.";
+ $("pv").textContent="Couldn't get an estimate: "+why+" You can add the food yourself under “Add your own”.";
  $("look").disabled=false;return false;
 }
 

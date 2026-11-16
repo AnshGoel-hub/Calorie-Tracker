@@ -3,8 +3,9 @@ services:
     name: calorie-tracker
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
+    buildCommand: pip install -r backend/requirements.txt
+    # Migrations run on every start; they are additive and safe to repeat.
+    startCommand: cd backend && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
     healthCheckPath: /healthz
     envVars:
       - key: PYTHON_VERSION
@@ -18,4 +19,6 @@ services:
       - key: GEMINI_API_KEY
         sync: false
       - key: INVITE_CODE
+        sync: false
+      - key: REDIS_URL        # optional: shared login throttling
         sync: false

@@ -69,6 +69,13 @@ button:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
 
 <div class="stats" id="tiles"></div>
 
+<section class="card" id="adp">
+ <div class="ch"><h2>Adaptive calorie target</h2><span class="sub" id="adc"></span></div>
+ <div class="sub" id="adm">Loading…</div>
+ <div class="stats" id="adt" style="margin:12px 0 0"></div>
+ <button class="more" id="adu" type="button" hidden></button>
+</section>
+
 <section class="card">
  <div class="ch"><h2>Last 7 days</h2><span class="sub">Calories per day</span></div>
  <div class="strip" id="strip"></div>
@@ -185,6 +192,27 @@ function render(){
  $("rsub").textContent=range?"Last "+n+" days":"All time · "+n+" days";
  tiles(cur,prev,n);strip();drawChart(cur);history(cur)}
 
+async function loadAdaptive(){
+ const msg=$("adm"),tiles=$("adt"),btn=$("adu");
+ try{
+  const r=await fetch("/api/v1/insights/tdee");if(r.status===401)return toLogin();if(!r.ok)throw 0;
+  const j=await r.json(),t=(b,s)=>"<div><b>"+b+"</b><span>"+s+"</span></div>";
+  $("adc").textContent=j.confidence==="none"?"":"Confidence: "+j.confidence;
+  if(!j.tdee){msg.textContent="Add your age, height, sex and activity in Settings, and log food and weight for two weeks or more, to get an estimate of your real maintenance calories.";return}
+  msg.textContent=j.method==="blended"
+   ?"Learned from your last "+j.window_days+" days: "+j.logged_days+" logged days and "+j.weigh_ins+" weigh-ins. Your weight trend and what you ate show how many calories you actually burn."
+   :"Formula estimate only. Log food and weigh yourself regularly for two weeks to personalise it.";
+  tiles.innerHTML=t(R(j.tdee)+" kcal","Estimated maintenance")+
+   (j.trend_kg_per_week!=null?t((j.trend_kg_per_week>0?"+":j.trend_kg_per_week<0?"−":"")+Math.abs(j.trend_kg_per_week).toFixed(2)+" kg","Weight trend per week"):"")+
+   t(j.suggested_target?R(j.suggested_target)+" kcal":"–","Suggested daily target")+t(R(j.current_target)+" kcal","Current target");
+  if(j.suggested_target&&j.suggested_target!==Math.round(j.current_target)){
+   btn.hidden=false;btn.textContent="Use "+R(j.suggested_target)+" kcal as my daily target";
+   btn.onclick=async()=>{btn.disabled=true;
+    try{const a=await fetch("/api/v1/insights/tdee/apply",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
+     if(!a.ok)throw 0;btn.textContent="Target updated to "+R(j.suggested_target)+" kcal";}
+    catch(e){btn.disabled=false;btn.textContent="Couldn’t update the target. Try again."}}}
+ }catch(e){msg.textContent="Couldn’t load the estimate."}
+}
 $("rg").onclick=e=>{const b=e.target.closest("button");if(!b)return;range=+b.dataset.r;showAll=false;document.querySelectorAll("#rg button").forEach(x=>x.classList.toggle("on",x===b));render()};
 $("mt").onclick=e=>{const b=e.target.closest("button");if(!b)return;metric=b.dataset.m;document.querySelectorAll("#mt button").forEach(x=>x.classList.toggle("on",x===b));drawChart(ser(nDays(),0))};
 $("hist").onclick=e=>{const r=e.target.closest(".rw");if(r)r.classList.toggle("open")};
@@ -195,6 +223,6 @@ if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener
  try{const r=await fetch("/api/data");if(r.status===401)return toLogin();if(!r.ok)throw 0;
   S=Object.assign({log:{},custom:[],target:2000},await r.json())}
  catch(e){$("err").textContent="Couldn’t load your data. Try again in a moment.";return}
- render();
+ render();loadAdaptive();
 })();
 </script></body></html>
