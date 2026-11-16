@@ -1,13 +1,14 @@
-"""Incremental API: per-entry CRUD with optimistic concurrency, change feed, estimates and insights."""
+"""Incremental API: per-entry CRUD with optimistic concurrency, per-day facts, change feed, estimates and insights."""
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.db import get_session
 from app.core.errors import ServiceError
 from app.core.security import current_user
-from app.models import DayLog, FoodEntry, User
-from app.schemas import EntryIn, EntryOut, EntryUpdate, EstimateIn, TargetApply
+from app.models import DayLog, FoodEntry, Profile, User
+from app.schemas import DayIn, DayOut, EntryIn, EntryOut, EntryUpdate, EstimateIn, TargetApply
 from app.services import estimates, insights
 from app.services.common import now_ms, parse_date
 
@@ -77,6 +78,43 @@ def delete_entry(entry_id: int, version: int = Query(ge=1), user: User = Depends
     e.deleted_at = e.updated_at = now_ms()  # tombstone: other devices learn about the delete via /sync
     e.version += 1
     db.commit()
+
+
+def _day_out(d: DayLog) -> DayOut:
+    return DayOut(date=d.date.isoformat(), target_kcal=d.target_kcal, water=d.water, weight_kg=d.weight_kg,
+                  marker_type=d.marker_type, marker_note=d.marker_note, version=d.version, updated_at=d.updated_at)
+
+
+@router.put("/days/{day}", response_model=DayOut)
+def put_day(day: str, b: DayIn, user: User = Depends(current_user), db: Session = Depends(get_session)):
+    """Save a day's water, weight, marker and target. `version` is the one the client last saw (0 for a new day)."""
+    d = parse_date(day)
+    if not d:
+        raise HTTPException(422, "Invalid date")
+    changed = {"message": "This day changed on another device"}
+    row = db.get(DayLog, (user.id, d))
+    if row is None and b.version != 0:
+        raise HTTPException(409, {**changed, "current": None})
+    if row is not None and b.version != row.version:
+        raise HTTPException(409, {**changed, "current": _day_out(row).model_dump()})
+    p = db.get(Profile, user.id)
+    fields = {"target_kcal": b.target_kcal or (p.target_kcal if p else 2000), "water": b.water,
+              "weight_kg": b.weight_kg, "marker_type": b.marker_type,
+              "marker_note": (b.marker_note or "") if b.marker_type else None}
+    if row is None:
+        row = DayLog(user_id=user.id, date=d, version=1, updated_at=now_ms(), **fields)
+        db.add(row)
+    else:
+        for k, v in fields.items():
+            setattr(row, k, v)
+        row.version += 1
+        row.updated_at = now_ms()
+    try:
+        db.commit()
+    except IntegrityError:  # two devices created the same day at the same moment
+        db.rollback()
+        raise HTTPException(409, {**changed, "current": None}) from None
+    return _day_out(row)
 
 
 @router.get("/sync")

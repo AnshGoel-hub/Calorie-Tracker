@@ -74,5 +74,26 @@ class EntryOut(BaseModel):
     deleted: bool = False
 
 
+class DayIn(BaseModel):
+    """Everything about a day that is not a food entry. Replaces the stored values as a whole."""
+    water: int = Field(default=0, ge=0, le=100)
+    weight_kg: float | None = Field(default=None, ge=20, le=300)
+    marker_type: str | None = Field(default=None, pattern=r"^(rest|sick|rain|exam|travel|busy|other)$")
+    marker_note: str | None = Field(default=None, max_length=60)
+    target_kcal: float | None = Field(default=None, ge=500, le=10000)
+    version: int = Field(ge=0)  # 0 = the client believes this day has no row yet
+
+
+class DayOut(BaseModel):
+    date: str
+    target_kcal: float
+    water: int
+    weight_kg: float | None
+    marker_type: str | None
+    marker_note: str | None
+    version: int
+    updated_at: int
+
+
 class TargetApply(BaseModel):
     target: int | None = Field(default=None, ge=800, le=10000)

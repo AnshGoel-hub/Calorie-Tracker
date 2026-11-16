@@ -125,7 +125,9 @@ Goals.fill($("ac"),Goals.ACT,"light");Goals.fill($("gl"),Goals.GOAL,"maintain");
 let sug=0;
 const prof=()=>({age:+$("ag").value||"",sex:$("sx").value,height:+$("ht").value||"",weight:+$("wt").value||"",activity:$("ac").value,goal:$("gl").value});
 async function freshT(){const r=await fetch("/api/data");if(r.status===401){toLogin();throw 0}if(!r.ok)throw 1;return r.json()}
-async function putT(T){T.updated=Date.now();const r=await fetch("/api/data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(T)});if(r.status===401){toLogin();throw 0}if(!r.ok)throw 1}
+// Normal saves only carry settings (profile, target); food entries and day facts are saved through /api/v1.
+// A backup restore passes full=true so it replaces everything.
+async function putT(T,full){T.updated=Date.now();const r=await fetch("/api/data"+(full?"":"?entries=skip&days=skip"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(T)});if(r.status===401){toLogin();throw 0}if(!r.ok)throw 1}
 (async()=>{try{const T=await freshT(),p=T.profile||{},k=Object.keys(T.log||{}).sort().reverse().find(k=>T.log[k].wt);
  $("ag").value=p.age||"";$("sx").value=p.sex||"";$("ht").value=p.height||"";
  $("wt").value=k?T.log[k].wt:(p.weight||"");
@@ -138,7 +140,13 @@ $("sg").onclick=()=>{const r=Goals.calc(prof(),+$("wt").value);$("sgb").style.di
  sug=r.target;say("bm",r.note,true);$("use").textContent="Use "+r.target.toLocaleString("en-IN")+" kcal as my daily target";$("sgb").style.display="block"};
 $("use").onclick=async()=>{
  try{const T=await freshT(),today=new Date().toLocaleDateString("en-CA");T.profile=Object.assign({},T.profile,prof());T.target=sug;
-  if(T.log&&T.log[today])T.log[today].t=sug;await putT(T);$("sgb").style.display="none";say("bm","Daily target set to "+sug.toLocaleString("en-IN")+" kcal.",true)}
+  await putT(T);
+  // today's own target lives with the day's other facts, so update it through the day endpoint
+  const g=(T.log||{})[today],mk=(T.marks||{})[today];
+  if(g){const r=await fetch("/api/v1/days/"+today,{method:"PUT",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({water:g.w||0,weight_kg:g.wt!=null?g.wt:null,marker_type:mk?mk.t:null,marker_note:mk?(mk.n||""):null,target_kcal:sug,version:(T.dv||{})[today]||0})});
+   if(r.status===401){toLogin();throw 0}}
+  $("sgb").style.display="none";say("bm","Daily target set to "+sug.toLocaleString("en-IN")+" kcal.",true)}
  catch(x){if(x!==0)say("bm","Couldn’t update your target.")}};
 
 // ---- appearance + backup
@@ -153,7 +161,7 @@ $("bi").onclick=()=>$("bif").click();
 $("bif").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
  r.onload=async()=>{try{const j=JSON.parse(r.result);if(!j.log)throw 2;
   if(!confirm("Replace ALL current food data with this backup? This can’t be undone."))return;
-  const N=Object.assign({log:{},custom:[],target:2000},j);await putT(N);
+  const N=Object.assign({log:{},custom:[],target:2000},j);await putT(N,true);
   try{localStorage.setItem("ct1",JSON.stringify(N))}catch(x){}
   say("bkm","Backup imported.",true)}catch(x){if(x!==0)say("bkm","That file doesn’t look like a backup, or it couldn’t be saved.")}};
  r.readAsText(f);e.target.value=""};

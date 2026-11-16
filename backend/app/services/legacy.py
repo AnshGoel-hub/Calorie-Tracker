@@ -2,7 +2,9 @@
 frontend reads and writes (`/api/data` and `/api/workouts`).
 
 Writes are snapshot-style: the user's rows are replaced with the submitted document inside one
-transaction. This exists only until the frontend moves to the incremental /api/v1 endpoints."""
+transaction. Food entries and per-day facts can be left out of that replacement (`entries=False`,
+`days=False`) because the frontend saves them one by one through /api/v1. This exists only until the
+frontend has moved everything to the incremental endpoints."""
 from sqlalchemy import delete, insert, select
 from sqlalchemy.orm import Session
 
@@ -35,11 +37,12 @@ def read_tracker(db: Session, uid: int) -> dict:
     by_day: dict[str, list] = {}
     for e in entries:
         by_day.setdefault(e.date.isoformat(), []).append(
-            {"n": e.name, "l": e.label, "g": e.grams, "k": e.kcal, "p": e.protein,
-             "c": e.carbs, "f": e.fat, "m": e.meal})
-    log, marks = {}, {}
+            {"id": e.id, "v": e.version, "n": e.name, "l": e.label, "g": e.grams, "k": e.kcal,
+             "p": e.protein, "c": e.carbs, "f": e.fat, "m": e.meal})
+    log, marks, dv = {}, {}, {}
     for d in db.scalars(select(DayLog).where(DayLog.user_id == uid)).all():
         k = d.date.isoformat()
+        dv[k] = d.version
         if d.marker_type:
             marks[k] = {"t": d.marker_type, "n": d.marker_note or ""}
         if by_day.get(k) or d.water or d.weight_kg is not None:
@@ -65,10 +68,11 @@ def read_tracker(db: Session, uid: int) -> dict:
                 prof[key] = val
     return {"log": log, "custom": custom, "target": target, "updated": p.tracker_updated if p else 0,
             "setup": bool(p and p.setup_done), "profile": prof, "marks": marks,
-            "goals": {"weekly": p.weekly_workout_goal} if p else {}}
+            "goals": {"weekly": p.weekly_workout_goal} if p else {}, "dv": dv}
 
 
-def write_tracker(db: Session, uid: int, doc: dict, commit: bool = True) -> None:
+def write_tracker(db: Session, uid: int, doc: dict, commit: bool = True, entries: bool = True,
+                  days: bool = True) -> None:
     p = get_or_create_profile(db, uid)
     target = num(doc.get("target"), 2000) or 2000
     prof = doc.get("profile") or {}
@@ -83,33 +87,39 @@ def write_tracker(db: Session, uid: int, doc: dict, commit: bool = True) -> None
     p.sex, p.activity, p.goal = (clip(prof.get("sex"), 10) or None, clip(prof.get("activity"), 20) or None,
                                  clip(prof.get("goal"), 20) or None)
 
-    db.execute(delete(FoodEntry).where(FoodEntry.user_id == uid))
-    db.execute(delete(DayLog).where(DayLog.user_id == uid))
+    if entries:
+        db.execute(delete(FoodEntry).where(FoodEntry.user_id == uid))
+    if days:
+        db.execute(delete(DayLog).where(DayLog.user_id == uid))
     db.execute(delete(Food).where(Food.owner_id == uid))  # units go with them (ON DELETE CASCADE)
     ts = now_ms()
-    days: dict = {}
-    entries: list[dict] = []
+    days_rows: dict = {}
+    entry_rows: list[dict] = []
     for k, g in (doc.get("log") or {}).items():
         d = parse_date(k)
         if not d or not isinstance(g, dict):
             continue
-        days[d] = {"user_id": uid, "date": d, "target_kcal": num(g.get("t"), target) or target,
-                   "water": int(num(g.get("w"), 0)), "weight_kg": opt_num(g.get("wt")), "marker_type": None,
-                   "marker_note": None, "version": 1, "updated_at": ts}
+        days_rows[d] = {"user_id": uid, "date": d, "target_kcal": num(g.get("t"), target) or target,
+                        "water": int(num(g.get("w"), 0)), "weight_kg": opt_num(g.get("wt")), "marker_type": None,
+                        "marker_note": None, "version": 1, "updated_at": ts}
         for i, x in enumerate(g.get("e") or []):
-            entries.append({"user_id": uid, "date": d, "meal": clip(x.get("m") or "Snacks", 20), "position": i,
-                            "name": clip(x.get("n"), 200), "label": clip(x.get("l"), 200), "grams": num(x.get("g")),
-                            "kcal": num(x.get("k")), "protein": num(x.get("p")), "carbs": num(x.get("c")),
-                            "fat": num(x.get("f")), "version": 1, "updated_at": ts, "deleted_at": None})
+            entry_rows.append({"user_id": uid, "date": d, "meal": clip(x.get("m") or "Snacks", 20), "position": i,
+                               "name": clip(x.get("n"), 200), "label": clip(x.get("l"), 200),
+                               "grams": num(x.get("g")), "kcal": num(x.get("k")), "protein": num(x.get("p")),
+                               "carbs": num(x.get("c")), "fat": num(x.get("f")), "version": 1, "updated_at": ts,
+                               "deleted_at": None})
     for k, m in (doc.get("marks") or {}).items():
         d = parse_date(k)
         if not d or not isinstance(m, dict) or not m.get("t"):
             continue
-        row = days.setdefault(d, {"user_id": uid, "date": d, "target_kcal": target, "water": 0, "weight_kg": None,
-                                  "marker_type": None, "marker_note": None, "version": 1, "updated_at": ts})
+        row = days_rows.setdefault(d, {"user_id": uid, "date": d, "target_kcal": target, "water": 0,
+                                       "weight_kg": None, "marker_type": None, "marker_note": None, "version": 1,
+                                       "updated_at": ts})
         row["marker_type"], row["marker_note"] = clip(m.get("t"), 10), clip(m.get("n"), 60)
-    _bulk(db, DayLog, list(days.values()))
-    _bulk(db, FoodEntry, entries)
+    if days:
+        _bulk(db, DayLog, list(days_rows.values()))
+    if entries:
+        _bulk(db, FoodEntry, entry_rows)
 
     seen, foods = set(), []
     for c in doc.get("custom") or []:

@@ -226,9 +226,10 @@ function draw(){
 }
 
 $("band").onclick=()=>{$("ban").style.display="none"};
+// Only the goal changes here, so skip food entries and day facts: they are saved through /api/v1.
 $("wkt").onchange=()=>{const v=Math.round(+$("wkt").value);if(!(v>=1&&v<=14)){$("wkt").value=(T.goals||{}).weekly||3;return}
  T.goals=Object.assign({},T.goals,{weekly:v});T.updated=Date.now();
- fetch("/api/data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(T)}).then(r=>{if(r.status===401)toLogin();else if(!r.ok)$("err").textContent="Couldn’t save the goal."}).catch(()=>{$("err").textContent="Couldn’t reach the server."});
+ fetch("/api/data?entries=skip&days=skip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(T)}).then(r=>{if(r.status===401)toLogin();else if(!r.ok)$("err").textContent="Couldn’t save the goal."}).catch(()=>{$("err").textContent="Couldn’t reach the server."});
  draw()};
 (async()=>{
  try{

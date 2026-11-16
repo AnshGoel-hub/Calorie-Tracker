@@ -24,11 +24,14 @@ def get_data(user: User = Depends(current_user), db: Session = Depends(get_sessi
 
 
 @router.post("/data")
-def post_data(data: TrackerData, request: Request, user: User = Depends(current_user),
-              db: Session = Depends(get_session)):
+def post_data(data: TrackerData, request: Request, entries: str = "replace", days: str = "replace",
+              user: User = Depends(current_user), db: Session = Depends(get_session)):
+    """`?entries=skip` leaves food entries alone (they are saved through /api/v1/entries).
+    `?days=skip` leaves water, weight, markers and per-day targets alone (/api/v1/days).
+    With neither, the whole document replaces the user's rows, as before."""
     doc = data.model_dump()
     _check_size(request, doc)
-    legacy.write_tracker(db, user.id, doc)
+    legacy.write_tracker(db, user.id, doc, entries=(entries != "skip"), days=(days != "skip"))
     return {"status": "success"}
 
 
