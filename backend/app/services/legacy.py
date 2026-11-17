@@ -162,10 +162,15 @@ def read_workouts(db: Session, uid: int) -> dict:
             "bw": w.body_weight_kg,
             "ex": [{"id": e.exercise_slug, "sets": sets_by_ex.get(e.id, [])} for e in exs_by_workout.get(w.id, [])]}
            for w in workouts]
-    custom = [{"id": c.slug, "n": c.name, "t": c.type, "met": c.met,
-               "P": [m for m in c.primary_muscles.split(",") if m],
-               "S": [m for m in c.secondary_muscles.split(",") if m]}
-              for c in db.scalars(select(CustomExercise).where(CustomExercise.user_id == uid)).all()]
+    custom = []
+    for c in db.scalars(select(CustomExercise).where(CustomExercise.user_id == uid)).all():
+        item = {"id": c.slug, "n": c.name, "t": c.type, "met": c.met,
+                "P": [m for m in c.primary_muscles.split(",") if m],
+                "S": [m for m in c.secondary_muscles.split(",") if m]}
+        sub = [m for m in (c.sub_muscles or "").split(",") if m]
+        if sub:  # only present when the user named specific parts, so older documents round-trip unchanged
+            item["sub"] = sub
+        custom.append(item)
     return {"workouts": out, "custom": custom, "updated": p.workouts_updated if p else 0,
             "bw": p.body_weight_kg if p else 0}
 
@@ -184,7 +189,8 @@ def write_workouts(db: Session, uid: int, doc: dict, commit: bool = True) -> Non
         used.add(slug)
         db.add(CustomExercise(user_id=uid, slug=slug, name=clip(c.get("n"), 120), type=clip(c.get("t") or "wr", 4),
                               met=num(c.get("met"), 6), primary_muscles=",".join(map(str, c.get("P") or []))[:60],
-                              secondary_muscles=",".join(map(str, c.get("S") or []))[:120]))
+                              secondary_muscles=",".join(map(str, c.get("S") or []))[:120],
+                              sub_muscles=",".join(map(str, c.get("sub") or []))[:120]))
     ids, rows = set(), []
     for i, w in enumerate(doc.get("workouts") or []):
         d = parse_date(w.get("date"))

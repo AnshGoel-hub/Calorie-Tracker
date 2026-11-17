@@ -104,8 +104,9 @@ class CustomExercise(Base):
     name: Mapped[str] = mapped_column(String(120))
     type: Mapped[str] = mapped_column(String(4))  # wr | br | dur | dd
     met: Mapped[float] = mapped_column(Float, default=6)
-    primary_muscles: Mapped[str] = mapped_column(String(60), default="")    # comma-separated codes
+    primary_muscles: Mapped[str] = mapped_column(String(60), default="")    # comma-separated group codes
     secondary_muscles: Mapped[str] = mapped_column(String(120), default="")
+    sub_muscles: Mapped[str] = mapped_column(String(120), default="")       # optional comma-separated part ids
 
 
 class Workout(Base):
@@ -146,7 +147,7 @@ class WorkoutSet(Base):
 
 
 class EstimateCache(Base):
-    """Shared Gemini results. `hits` counts reuse, so hit rate = hits / (hits + rows)."""
+    """Shared Gemini results (food estimates and muscle suggestions). `hits` counts reuse."""
     __tablename__ = "estimate_cache"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     key: Mapped[str] = mapped_column(String(64), unique=True)

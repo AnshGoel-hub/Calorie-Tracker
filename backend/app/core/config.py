@@ -33,7 +33,8 @@ class Settings:
     invite_code: str = ""
     cookie_secure: bool = False
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-3.5-flash"
+    gemini_model: str = "gemini-3.8-flash"
+    gemini_fallback_model: str = ""  # tried when the main model is overloaded or retired
     estimates_per_day: int = 30
     redis_url: str = ""
     jwt_days: int = 30
@@ -56,7 +57,8 @@ def load_settings() -> Settings:
         invite_code=env("INVITE_CODE", ""),
         cookie_secure=env("COOKIE_SECURE", "0") == "1",
         gemini_api_key=env("GEMINI_API_KEY", ""),
-        gemini_model=env("GEMINI_MODEL", "gemini-3.5-flash"),
+        gemini_model=env("GEMINI_MODEL", "gemini-3.8-flash"),
+        gemini_fallback_model=env("GEMINI_FALLBACK_MODEL", ""),
         estimates_per_day=int(env("ESTIMATES_PER_DAY", "30")),
         redis_url=env("REDIS_URL", ""),
         frontend_dir=Path(env("FRONTEND_DIR", str(REPO_DIR / "frontend"))),

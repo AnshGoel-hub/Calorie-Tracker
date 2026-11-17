@@ -5,6 +5,7 @@ every response is validated before it is stored or returned."""
 import hashlib
 import json
 import re
+import time
 import urllib.error
 import urllib.request
 from datetime import date
@@ -78,24 +79,41 @@ def validate(j) -> tuple[dict | None, str | None]:
     return {"kcal": round(k), "protein": round(p, 1), "carbs": round(c, 1), "fat": round(f, 1), "units": units}, warn
 
 
+RETRY_CODES = {429, 500, 502, 503, 504}  # overloaded or temporarily failing: worth another try
+
+
 def call_gemini(settings, prompt: str) -> dict:
+    """Ask Gemini for JSON. Each model gets two attempts when it is overloaded or slow, then the optional
+    fallback model is tried. A retired model (404) moves straight on to the fallback."""
     if not settings.gemini_api_key:
         raise ServiceError(503, "GEMINI_API_KEY is not set on the server")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.gemini_model}:generateContent"
+    models = [m for m in (settings.gemini_model, settings.gemini_fallback_model) if m]
     body = json.dumps({"contents": [{"parts": [{"text": prompt}]}],
                        "generationConfig": {"responseMimeType": "application/json"}}).encode()
-    req = urllib.request.Request(url, data=body, headers={
-        "Content-Type": "application/json", "x-goog-api-key": settings.gemini_api_key})
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = json.load(resp)
-        return json.loads("".join(p.get("text", "") for p in data["candidates"][0]["content"]["parts"]))
-    except urllib.error.HTTPError as e:
-        raise ServiceError(502, f"Gemini error {e.code}") from e
-    except (KeyError, IndexError, ValueError):
-        return {}  # unreadable reply: validate() rejects it and the caller retries
-    except Exception as e:
-        raise ServiceError(502, f"Could not reach Gemini ({type(e).__name__})") from e
+    last = "no model is configured"
+    for model in models:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+        for attempt in range(2):
+            req = urllib.request.Request(url, data=body, headers={
+                "Content-Type": "application/json", "x-goog-api-key": settings.gemini_api_key})
+            try:
+                with urllib.request.urlopen(req, timeout=20) as resp:
+                    data = json.load(resp)
+                return json.loads("".join(p.get("text", "") for p in data["candidates"][0]["content"]["parts"]))
+            except urllib.error.HTTPError as e:
+                last = f"Gemini error {e.code} ({model})"
+                if e.code in RETRY_CODES:
+                    if attempt == 0:
+                        time.sleep(1.5)
+                    continue
+                break  # 404, 400, 403: retrying this model won't help
+            except (KeyError, IndexError, ValueError):
+                return {}  # unreadable reply: validate() rejects it and the caller retries
+            except Exception as e:
+                last = f"Could not reach Gemini ({type(e).__name__})"
+                if attempt == 0:
+                    time.sleep(1.5)
+    raise ServiceError(502, last)
 
 
 def take_quota(db: Session, uid: int, limit: int) -> None:
@@ -147,7 +165,9 @@ def estimate(db: Session, settings, uid: int, name: str, kind: str, ingredients:
 
 
 def cache_stats(db: Session) -> dict:
-    rows, hits = db.execute(select(func.count(EstimateCache.id), func.coalesce(func.sum(EstimateCache.hits), 0))).one()
+    """Food estimates only: muscle suggestions share the table but are not counted here."""
+    rows, hits = db.execute(select(func.count(EstimateCache.id), func.coalesce(func.sum(EstimateCache.hits), 0))
+                            .where(EstimateCache.kind != "muscles")).one()
     lookups = rows + hits  # every row was created by one miss
     return {"foods_cached": rows, "cache_hits": int(hits), "lookups": int(lookups),
             "hit_rate": round(hits / lookups, 3) if lookups else None}
