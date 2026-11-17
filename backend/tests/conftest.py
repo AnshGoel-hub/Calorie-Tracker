@@ -83,5 +83,6 @@ def workouts_doc():
             {"id": "tm", "sets": [{"d": 10, "k": 1.2}]}]},
         {"id": "abc2", "date": "2026-11-12", "name": "", "dur": 0, "kcal": 90, "bw": 70, "ex": [
             {"id": "c1x", "sets": [{"r": 12}]}]}],
-        "custom": [{"id": "c1x", "n": "Cable woodchop", "t": "br", "met": 6, "P": ["ab"], "S": ["sh", "gl"]}],
+        "custom": [{"id": "c1x", "n": "Cable woodchop", "t": "br", "met": 6, "P": ["ab"], "S": ["sh", "gl"],
+                    "sub": ["ab_up", "obl"]}],
         "updated": 1760000001000, "bw": 70}

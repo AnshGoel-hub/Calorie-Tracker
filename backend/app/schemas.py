@@ -42,6 +42,10 @@ class EstimateIn(BaseModel):
     ingredients: str = Field(default="", max_length=800)
 
 
+class MuscleSuggestIn(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+
+
 class EntryIn(BaseModel):
     date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
     meal: str = Field(default="Snacks", max_length=20)

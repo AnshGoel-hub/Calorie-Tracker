@@ -8,8 +8,8 @@ from app.core.db import get_session
 from app.core.errors import ServiceError
 from app.core.security import current_user
 from app.models import DayLog, FoodEntry, Profile, User
-from app.schemas import DayIn, DayOut, EntryIn, EntryOut, EntryUpdate, EstimateIn, TargetApply
-from app.services import estimates, insights
+from app.schemas import DayIn, DayOut, EntryIn, EntryOut, EntryUpdate, EstimateIn, MuscleSuggestIn, TargetApply
+from app.services import estimates, insights, muscles
 from app.services.common import now_ms, parse_date
 
 router = APIRouter(prefix="/api/v1", tags=["v1"])
@@ -135,6 +135,12 @@ def estimate_food(b: EstimateIn, request: Request, user: User = Depends(current_
                   db: Session = Depends(get_session)):
     return estimates.estimate(db, request.app.state.settings, user.id, b.name, b.kind, b.ingredients,
                               fetch=request.app.state.fetcher)
+
+
+@router.post("/exercises/suggest-muscles")
+def suggest_muscles(b: MuscleSuggestIn, request: Request, user: User = Depends(current_user),
+                    db: Session = Depends(get_session)):
+    return muscles.suggest(db, request.app.state.settings, user.id, b.name, fetch=request.app.state.fetcher)
 
 
 @router.get("/insights/cache")

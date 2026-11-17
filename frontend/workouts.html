@@ -85,6 +85,10 @@ button,a,label,select{touch-action:manipulation}
 .ai .z.b{background:var(--wa);color:#fff}.ai .z.g{background:var(--wt);color:#fff}.ai .z.r{background:var(--bad);color:#fff}
 .ai h5{margin:14px 0 6px;font-size:12.5px;color:var(--mu);font-weight:600}
 .chp{display:flex;gap:6px;flex-wrap:wrap}.chp button{padding:5px 12px;font-size:13px}.chp button small{color:var(--mu);margin-left:4px}
+.chp button.on{background:var(--ac);border-color:var(--ac);color:var(--on);font-weight:700}
+.chp button.on2{background:var(--wa);border-color:var(--wa);color:#fff;font-weight:600}
+.sg h5{margin:10px 0 6px;font-size:12.5px;color:var(--mu);font-weight:600}
+#cpp,#csc{margin-bottom:12px}
 
 /* muscle balance page */
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -93,6 +97,7 @@ button,a,label,select{touch-action:manipulation}
 .seg2{display:inline-flex;background:var(--pn);border-radius:999px;padding:3px;gap:2px}
 .seg2 button{border:0;background:transparent;border-radius:999px;padding:6px 14px;min-height:34px;font-size:13px;color:var(--mu);font-weight:600}
 .seg2 button.on{background:var(--card);color:var(--tx);box-shadow:0 1px 3px rgba(0,0,0,.14)}
+#wkn{margin-bottom:10px}#wkn button:disabled{opacity:1;color:var(--tx);cursor:default}#wkn #wkx:disabled{opacity:.4}
 .mb{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,1fr);gap:16px;align-items:start;margin-bottom:16px}
 .mb>.card{margin:0}.mb-side{position:sticky;top:16px}
 .mb-side h2{margin-bottom:10px}.mb-side label{margin-top:0}
@@ -170,9 +175,13 @@ button:disabled{opacity:.5;cursor:default}
   <div id="exs"></div>
   <button class="pri" id="aex" type="button" style="width:100%;margin-top:14px">＋ Add exercise</button>
   <details><summary>Exercise not in the list? Create your own</summary>
-   <div class="row" style="margin-top:10px;align-items:flex-start"><div><label>Name</label><input id="cn"></div><div><label>Type</label><select id="ct"><option value="wr">Weight &amp; reps</option><option value="br">Bodyweight reps</option><option value="dur">Duration</option><option value="dd">Distance &amp; duration</option></select></div></div>
-   <div class="row" style="align-items:flex-start"><div><label>Primary muscle</label><select id="cp"></select></div><div><label>Secondary (hold Ctrl for several)</label><select id="cs" multiple size="4"></select></div></div>
-   <button id="cadd" style="width:100%">Save exercise</button>
+   <div class="row" style="margin-top:10px;align-items:flex-start"><div><label for="cn">Name</label><input id="cn"></div><div><label for="ct">Type</label><select id="ct"><option value="wr">Weight &amp; reps</option><option value="br">Bodyweight reps</option><option value="dur">Duration</option><option value="dd">Distance &amp; duration</option></select></div></div>
+   <button id="csug" type="button" style="width:100%;margin-top:4px">Suggest muscles with Gemini</button>
+   <div class="sub" id="cmsg" style="margin-top:6px" role="status"></div>
+   <label style="margin-top:10px">Primary muscles (main movers)</label><div class="chp" id="cpp"></div>
+   <label>Secondary muscles (helpers)</label><div class="chp" id="csc"></div>
+   <div id="csb" class="sg"></div>
+   <button id="cadd" type="button" style="width:100%;margin-top:12px">Save exercise</button>
   </details>
   <div class="sub" id="est" style="margin:14px 0 8px"></div>
   <div class="row" style="margin:0"><button class="pri" id="sv" style="flex:1">Save workout</button><button id="cx" style="flex:none;display:none">Cancel edit</button></div>
@@ -194,8 +203,9 @@ button:disabled{opacity:.5;cursor:default}
 <section class="card mb-top">
  <div class="mbh">
   <div><h2 style="margin:0">Muscle balance</h2><div class="sub" id="rsum"></div></div>
-  <div class="seg2" id="rg" role="group" aria-label="Time range"><button type="button" data-r="7" class="on">7D</button><button type="button" data-r="30">30D</button><button type="button" data-r="90">90D</button></div>
+  <div class="seg2" id="rg" role="group" aria-label="Time range"><button type="button" data-r="w" class="on">Week</button><button type="button" data-r="7">7D</button><button type="button" data-r="30">30D</button><button type="button" data-r="90">90D</button></div>
  </div>
+ <div class="seg2" id="wkn" role="group" aria-label="Choose week"><button type="button" id="wkp" aria-label="Previous week">‹</button><button type="button" id="wkl" disabled style="min-width:150px"></button><button type="button" id="wkx" aria-label="Next week">›</button></div>
  <div class="stats" id="mst"></div>
 </section>
 
@@ -232,13 +242,13 @@ button:disabled{opacity:.5;cursor:default}
 <section class="card">
  <h2>Radar view</h2>
  <div class="g2">
-  <div><h3>Average sets per week (dashed = 10 and 20 target)</h3><div class="cw"><canvas id="r1"></canvas></div></div>
+  <div><h3>Sets per week for the chosen range (dashed = 10 and 20 target)</h3><div class="cw"><canvas id="r1"></canvas></div></div>
   <div><h3 id="rt2">Selected session</h3><div class="cw"><canvas id="r2"></canvas></div></div>
  </div>
 </section>
 
 <details class="card note"><summary>How sets and calories are counted</summary>
- <div class="sub" style="margin-top:8px">Primary muscles count 1 per working set and secondary muscles 0.5; warm-up sets don’t count; cardio counts 1 set per 10 minutes. Calories are MET-based estimates (about ±25%) using your body weight.</div>
+ <div class="sub" style="margin-top:8px">Primary muscles count 1 per working set and secondary muscles 0.5; warm-up sets don’t count; cardio counts 1 set per 10 minutes. Week view shows raw sets from Monday to Sunday; the current week is still in progress, so it shows how many sets to go instead of calling a muscle low. Other ranges are averaged per week. Calories are MET-based estimates (about ±25%) using your body weight.</div>
 </details>
 </div>
 
@@ -358,7 +368,8 @@ function body(val,fill){let o="";
 const NEG="fill:none;stroke:var(--mu);stroke-width:1;stroke-dasharray:2 2";
 const zone=v=>v<=0?NEG:v<10?`fill:var(--wa);fill-opacity:${.3+.05*v};stroke:var(--bg)`:v<=20?"fill:var(--wt);fill-opacity:.85;stroke:var(--bg)":"fill:var(--bad);fill-opacity:.9;stroke:var(--bg)";
 
-let W={workouts:[],custom:[],updated:0,bw:0},D,editId=null,sel=null,range=7,CH={};
+// range is "w" (one calendar week, Monday to Sunday, offset by woff weeks) or a number of days (7, 30, 90)
+let W={workouts:[],custom:[],updated:0,bw:0},D,editId=null,sel=null,range="w",woff=0,CH={};
 const ALL=()=>BASE.concat(W.custom||[]),lib=id=>ALL().find(x=>x.id===id);
 const newDraft=()=>({date:iso(new Date()),name:"",dur:"",ex:[]});
 const BW=()=>+$("bw").value||70,cmp=(a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id);
@@ -472,20 +483,24 @@ function radar(id,data,max,tgt){if(!window.Chart)return;CH[id]&&CH[id].destroy()
  if(tgt)[10,20].forEach(n=>ds.push({data:M.map(()=>n),borderColor:mu,borderDash:[5,4],borderWidth:1,pointRadius:0,fill:false}));
  CH[id]=new Chart($(id),{type:"radar",data:{labels:M.map(m=>MN[m]),datasets:ds},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},
   scales:{r:{beginAtZero:true,suggestedMax:max,ticks:{display:false},grid:{color:bd},angleLines:{color:bd},pointLabels:{color:v("--tx"),font:{size:11}}}}}})}
-let AV=null,amode="week",asel=null,LP={},LS={},LMX=1,LSW=null;
+let AV=null,amode="week",asel=null,LP={},LS={},LMX=1,LSW=null,LPART=false,LLAB="";
 const GL={ch:"chest",sh:"shoulders",bi:"biceps",tr:"triceps",fo:"forearms",ab:"abs",la:"lats",tp:"traps",lb:"lower back",gl:"glutes",qd:"quads",ha:"hamstrings",ca:"calves"};
 function ensure3D(){
  if(AV||ensure3D.failed)return;
  try{if(typeof THREE==="undefined"||typeof Anatomy3D==="undefined")throw 0;AV=Anatomy3D.create($("a3"),{onSelect:id=>{asel=id;$("asel").value=id||"";showInfo();drawBars()}})}
  catch(e){AV=null;ensure3D.failed=true}}
-function zoneOf(v){return v<=0?["None, left behind",""]:v<10?["Under 10 sets/week","b"]:v<=20?["In the 10–20 target","g"]:["Over 20 sets/week","r"]}
+// A partial (current) week is not judged "low": it shows how many sets are still needed to reach 10.
+function zoneOf(v){return v<=0?["None, left behind",""]:v<10?[LPART?"Under 10 so far":"Under 10 sets/week","b"]:v<=20?["In the 10–20 target","g"]:["Over 20 sets/week","r"]}
 function showInfo(){
  const el=$("ainfo"),m=asel&&Anatomy3D.byId(asel);
  if(!m){el.innerHTML='<div class="empty"><b>Nothing selected</b><span>Tap a muscle on the model, or pick one from the list, to see what it does and which exercises train it.</span></div>';return}
- const wk=LP[m.g]||0,se=LS[m.g]||0,z=zoneOf(wk),best=m.ex.filter(i=>lib(i)),rest=ALL().filter(x=>!best.includes(x.id)&&(x.P.includes(m.g)||x.S.includes(m.g)));
+ const wk=LP[m.g]||0,se=LS[m.g]||0,z=zoneOf(wk),
+  // custom exercises that name this exact part count as "best" for it, alongside the built-in list
+  best=m.ex.filter(i=>lib(i)).concat(ALL().filter(x=>x.sub&&x.sub.includes(m.id)&&!m.ex.includes(x.id)).map(x=>x.id)),
+  rest=ALL().filter(x=>!best.includes(x.id)&&(x.P.includes(m.g)||x.S.includes(m.g)));
  const chip=(x,tag)=>`<button type="button" onclick="useEx('${x.id}')">${esc(x.n)}${tag?`<small>${tag}</small>`:""}</button>`;
  el.innerHTML=`<h4>${esc(m.n)}</h4><div class="sub">${esc(m.f)}</div><div class="sub"><b>Tip:</b> ${esc(m.t)}</div>`+
-  `<span class="z ${z[1]}">${z[0]}</span><span class="z">${wk.toFixed(1)} ${GL[m.g]} sets/week (last ${range} days)</span>`+(LSW?`<span class="z">${se.toFixed(1)} in the selected session</span>`:"")+
+  `<span class="z ${z[1]}">${z[0]}</span><span class="z">${wk.toFixed(1)} ${GL[m.g]} sets (${esc(LLAB)})</span>`+(LSW?`<span class="z">${se.toFixed(1)} in the selected session</span>`:"")+
   `<h5>Best exercises for this muscle</h5><div class="chp">${best.length?best.map(i=>chip(lib(i))).join(""):'<span class="sub">None in your exercise list yet. Create your own under Log.</span>'}</div>`+
   (rest.length?`<h5>Also works the ${GL[m.g]}</h5><div class="chp">${rest.map(x=>chip(x,x.P.includes(m.g)?"main":"assist")).join("")}</div>`:"")+
   `<div class="sub" style="margin-top:12px">Tap an exercise to add it to a new workout. Logs track whole muscle groups, so every part of the ${GL[m.g]} shares one colour.</div>`}
@@ -502,24 +517,39 @@ function fillSessions(){
  $("ses").innerHTML=list.map(w=>`<option value="${w.id}">${esc(dayF(w.date))} · ${esc((w.name||w.ex.map(e=>(lib(e.id)||{n:"?"}).n).join(", ")).slice(0,34))}</option>`).join("");
  if(LSW)$("ses").value=LSW.id}
 function legend(week){
- $("lgd").innerHTML=week?'<span><i style="border:1px dashed var(--mu)"></i>None (left behind)</span><span><i style="background:var(--wa)"></i>Under 10 sets/wk</span><span><i style="background:var(--wt)"></i>10–20 (target)</span><span><i style="background:var(--bad)"></i>Over 20</span>'
+ $("lgd").innerHTML=week?'<span><i style="border:1px dashed var(--mu)"></i>None (left behind)</span><span><i style="background:var(--wa)"></i>'+(LPART?"Under 10 so far":"Under 10 sets/wk")+'</span><span><i style="background:var(--wt)"></i>10–20 (target)</span><span><i style="background:var(--bad)"></i>Over 20</span>'
   :'<span><i style="border:1px dashed var(--mu)"></i>Not worked</span><span><i style="background:var(--ac)"></i>Stronger colour = more sets</span>'}
 function drawBars(){
  const week=!AV||amode==="week",V=week?LP:LS,mx=week?Math.max(24,...M.map(m=>V[m]||0))*1.05:Math.max(4,LMX)*1.05;
  const sg=asel&&Anatomy3D.byId(asel)?Anatomy3D.byId(asel).g:null;
- $("bt").textContent=week?"Sets per week by muscle group":"Sets per muscle group in this session";
+ $("bt").textContent=week?(range==="w"?"Sets per muscle group "+(woff===0?"this week":"in this week")+(LPART?" so far":""):"Sets per week by muscle group"):"Sets per muscle group in this session";
  $("bars").innerHTML=M.map(m=>{const v=V[m]||0,w=Math.min(100,v/mx*100);
-  const fill=!(v>0)?"":week?(v<10?"b":v<=20?"g":"r"):"a",chip=week?(v<=0?"None":v<10?"Low":v<=20?"On target":"High"):"",cz=week?(v<=0?"":v<10?"b":v<=20?"g":"r"):"";
+  const fill=!(v>0)?"":week?(v<10?"b":v<=20?"g":"r"):"a",
+   chip=week?(v<=0?(LPART?"–":"None"):v<10?(LPART?Math.ceil(10-v)+" to go":"Low"):v<=20?"On target":"High"):"",
+   cz=week?(v<=0?"":v<10?(LPART?"":"b"):v<=20?"g":"r"):"";
   const band=week?`<u style="left:${10/mx*100}%;width:${10/mx*100}%"></u>`:"";
   const inner=`<span class="bl">${MN[m]}</span><span class="bt">${band}${fill?`<i class="${fill}" style="width:${w}%"></i>`:""}</span><span class="bv">${v.toFixed(1)}</span><span class="bz ${cz}">${chip||"&nbsp;"}</span>`;
   return AV?`<button type="button" class="br${sg===m?" on":""}" data-g="${m}" aria-label="${MN[m]}: ${v.toFixed(1)} sets">${inner}</button>`:`<div class="br" role="group">${inner}</div>`}).join("")}
 function paint3D(){AV.setData(amode==="week"?LP:LS,amode,LMX);showInfo()}
+// The period shown in Muscle balance: one calendar week (Mon to Sun) or the last N days.
+function spanOf(){
+ const td=iso(new Date()),f=d=>d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+ if(range==="w"){
+  const s=new Date(mon(td)+"T00:00");s.setDate(s.getDate()+7*woff);
+  const e=new Date(s);e.setDate(e.getDate()+6);
+  const partial=woff===0,done=partial?Math.round((new Date(td+"T00:00")-s)/864e5)+1:7,label=f(s)+" – "+f(e);
+  return{from:iso(s),to:iso(e),weeks:1,partial,label,
+   sum:(woff===0?"This week":woff===-1?"Last week":"Week")+" · "+label+(partial?" · day "+done+" of 7, sets so far":" · raw set counts")}}
+ const s=new Date();s.setDate(s.getDate()-range+1);
+ return{from:iso(s),to:td,weeks:range/7,partial:false,label:"last "+range+" days",sum:"Last "+range+" days · set counts are averaged per week"}}
 function drawStats(){
- const f=new Date();f.setDate(f.getDate()-range+1);const ws=W.workouts.filter(w=>w.date>=iso(f)),P={},L=load(ws);
- M.forEach(m=>P[m]=L[m]/(range/7));
+ const sp=spanOf();LPART=sp.partial;LLAB=sp.label;
+ const ws=W.workouts.filter(w=>w.date>=sp.from&&w.date<=sp.to),P={},L=load(ws);
+ M.forEach(m=>P[m]=L[m]/sp.weeks);
  const ok=M.filter(m=>P[m]>=10&&P[m]<=20).length,none=M.filter(m=>P[m]===0).map(m=>MN[m]),sb=(b,s)=>"<div><b>"+b+"</b><span>"+s+"</span></div>";
- $("rsum").textContent="Last "+range+" days · set counts are averaged per week";
- $("mst").innerHTML=sb(ws.length,"Workouts")+sb("≈ "+R(ws.reduce((a,w)=>a+(w.kcal||0),0)),"kcal burned (estimate)")+sb(ok+" of "+M.length,"Muscle groups in the 10–20 set target")+sb(none.length,none.length?"Not trained: "+esc(none.join(", ")):"Every muscle group trained");
+ $("wkn").hidden=range!=="w";$("wkx").disabled=woff>=0;$("wkl").textContent=sp.label;
+ $("rsum").textContent=sp.sum;
+ $("mst").innerHTML=sb(ws.length,"Workouts")+sb("≈ "+R(ws.reduce((a,w)=>a+(w.kcal||0),0)),"kcal burned (estimate)")+sb(ok+" of "+M.length,sp.partial?"Muscle groups at 10–20 sets so far":"Muscle groups in the 10–20 set target")+sb(none.length,none.length?"Not trained: "+esc(none.join(", ")):"Every muscle group trained");
  radar("r1",M.map(m=>+P[m].toFixed(1)),22,true);
  const sw=W.workouts.find(w=>w.id===sel)||W.workouts[0],S=load(sw?[sw]:[]),mx=Math.max(1,...M.map(m=>S[m]));
  radar("r2",M.map(m=>+S[m].toFixed(1)),Math.max(4,mx),false);
@@ -527,10 +557,10 @@ function drawStats(){
  $("rt2").textContent=sw?"Session: "+(sw.name||"workout")+" ("+sw.date+")":"No session logged yet";
  ensure3D();$("a3box").hidden=!AV;$("fb").hidden=!!AV;$("am").hidden=!AV;$("asel").hidden=!AV;$("sesw").hidden=!(AV&&amode==="session"&&W.workouts.length>0);
  legend(!AV||amode==="week");
- $("t1").textContent=!AV?"":amode==="week"?"Average sets per week over the last "+range+" days.":(sw?"Sets from the selected session.":"No session logged yet.");
+ $("t1").textContent=!AV?"":amode==="week"?(range==="w"?"Sets logged "+sp.label+(sp.partial?" (week still in progress)":"")+".":"Average sets per week over the "+sp.label+"."):(sw?"Sets from the selected session.":"No session logged yet.");
  if(AV){fillMuscleList();AV.resize();paint3D()}
  else{
-  $("tf1").textContent="Last "+range+" days, average sets per week";$("m1").innerHTML=body(P,m=>zone(P[m]));
+  $("tf1").textContent=sp.label+(range==="w"?", sets":", average sets per week");$("m1").innerHTML=body(P,m=>zone(P[m]));
   $("t2").textContent=sw?"Session: "+(sw.name||"workout")+" ("+sw.date+")":"No session selected";
   $("m2").innerHTML=body(S,m=>S[m]<=0?NEG:`fill:var(--ac);fill-opacity:${.3+.7*S[m]/mx};stroke:var(--bg)`);
   $("ainfo").innerHTML=""}
@@ -612,6 +642,37 @@ function drawAnalytics(){
  $("prc").textContent=all.length?(q?list.length+" of "+all.length+" exercises":all.length+(all.length===1?" exercise":" exercises")+" tracked"):"";
  $("prmore").hidden=!(!q&&all.length>10);$("prmore").textContent=prAll?"Show fewer":"Show all "+all.length}
 
+// ---- create-your-own exercise: muscle picker (groups, optional specific parts, optional Gemini suggestion)
+let CM={P:new Set(),S:new Set(),sub:new Set()};
+function drawCM(){
+ const A=typeof Anatomy3D!=="undefined"?Anatomy3D:null,gs=new Set([...CM.P,...CM.S]);
+ [...CM.sub].forEach(s=>{const m=A&&A.byId(s);if(!m||!gs.has(m.g))CM.sub.delete(s)});   // drop parts whose group was unticked
+ const chips=(set,cls)=>M.map(m=>`<button type="button" data-m="${m}" class="${set.has(m)?cls:""}" aria-pressed="${set.has(m)}">${MN[m]}</button>`).join("");
+ $("cpp").innerHTML=chips(CM.P,"on");$("csc").innerHTML=chips(CM.S,"on2");
+ $("csb").innerHTML=!A||!gs.size?"":"<label>Specific part (optional, skip it if you only know the group)</label>"+M.filter(g=>gs.has(g)).map(g=>
+  "<h5>"+esc(MN[g])+'</h5><div class="chp">'+A.MUSCLES.filter(m=>m.g===g).map(m=>`<button type="button" data-s="${m.id}" class="${CM.sub.has(m.id)?"on":""}" aria-pressed="${CM.sub.has(m.id)}">${esc(m.n)}</button>`).join("")+"</div>").join("")}
+function fillLists(){drawCM()}
+$("cpp").onclick=e=>{const b=e.target.closest("button");if(!b)return;const m=b.dataset.m;CM.P.has(m)?CM.P.delete(m):(CM.P.add(m),CM.S.delete(m));drawCM()};
+$("csc").onclick=e=>{const b=e.target.closest("button");if(!b)return;const m=b.dataset.m;CM.S.has(m)?CM.S.delete(m):(CM.S.add(m),CM.P.delete(m));drawCM()};
+$("csb").onclick=e=>{const b=e.target.closest("button");if(!b)return;const s=b.dataset.s;CM.sub.has(s)?CM.sub.delete(s):CM.sub.add(s);drawCM()};
+$("csug").onclick=async()=>{
+ const n=$("cn").value.trim();if(!n){$("cmsg").textContent="Type the exercise name first.";return}
+ $("csug").disabled=true;$("cmsg").textContent="Asking Gemini…";
+ try{
+  const r=await fetch(API+"/api/v1/exercises/suggest-muscles",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:n})});
+  if(r.status===401){toLogin();return}
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){$("cmsg").textContent=(typeof j.detail==="string"?j.detail:"Couldn’t get a suggestion.")+" You can pick the muscles yourself.";return}
+  CM={P:new Set(j.primary),S:new Set(j.secondary),sub:new Set(j.sub)};drawCM();
+  $("cmsg").textContent="Suggested by Gemini"+(j.cached?" (from cache)":"")+". Check it and change anything that looks wrong."}
+ catch(e){$("cmsg").textContent="Couldn’t reach the server. Pick the muscles yourself."}
+ finally{$("csug").disabled=false}};
+$("cadd").onclick=()=>{const n=$("cn").value.trim();if(!n){msg("Give the exercise a name.");return}
+ if(!CM.P.size){msg("Pick at least one primary muscle.");return}
+ const sub=[...CM.sub];
+ W.custom=(W.custom||[]).concat(Object.assign({id:"c"+Date.now().toString(36),n,t:$("ct").value,P:[...CM.P],S:[...CM.S],met:6},sub.length?{sub}:{}));
+ saveW();$("cn").value="";$("cmsg").textContent="";CM={P:new Set(),S:new Set(),sub:new Set()};drawCM();msg("Exercise saved. You can add it now.")};
+
 // ---- wiring
 $("pg").onclick=e=>{const b=e.target.closest("button");if(b)tab(b.dataset.p)};
 $("all").onclick=()=>tab("history");$("more").onclick=()=>{hlim+=20;drawHist()};
@@ -630,20 +691,17 @@ $("xsx").onclick=closePick;$("xsb").onclick=closePick;
 addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("xs").hidden)closePick()});
 $("sv").onclick=saveWorkout;$("cx").onclick=()=>{editId=null;D=newDraft();drawLog();msg("")};
 $("bw").onchange=()=>{W.bw=+$("bw").value||0;saveW();est()};
-$("rg").onclick=e=>{const b=e.target.closest("button");if(!b)return;range=+b.dataset.r;document.querySelectorAll("#rg button").forEach(x=>x.classList.toggle("on",x===b));drawStats()};
+$("rg").onclick=e=>{const b=e.target.closest("button");if(!b)return;range=b.dataset.r==="w"?"w":+b.dataset.r;woff=0;document.querySelectorAll("#rg button").forEach(x=>x.classList.toggle("on",x===b));drawStats()};
+$("wkp").onclick=()=>{woff--;drawStats()};
+$("wkx").onclick=()=>{if(woff<0){woff++;drawStats()}};
 $("am").onclick=e=>{const b=e.target.closest("button");if(!b||!AV)return;amode=b.dataset.m;document.querySelectorAll("#am button").forEach(x=>x.classList.toggle("on",x===b));drawStats()};
 $("ses").onchange=()=>{sel=$("ses").value;drawStats()};
 $("bars").onclick=e=>{const b=e.target.closest("button.br");if(!b||!AV)return;const cur=asel&&Anatomy3D.byId(asel),first=Anatomy3D.MUSCLES.find(x=>x.g===b.dataset.g);
  AV.select(cur&&cur.g===b.dataset.g?null:first.id,{focus:true});$("a3box").scrollIntoView({block:"nearest",behavior:"smooth"})};
 $("a3c").onclick=e=>{const b=e.target.closest("button");if(!b||!AV)return;if(b.dataset.v)AV.view(b.dataset.v);else AV.zoom(+b.dataset.z)};
 $("asel").onchange=()=>{if(AV)AV.select($("asel").value||null,{focus:true})};
-$("cadd").onclick=()=>{const n=$("cn").value.trim();if(!n){msg("Give the exercise a name.");return}
- const p=$("cp").value,s=[...$("cs").selectedOptions].map(o=>o.value).filter(v=>v!==p);
- W.custom=(W.custom||[]).concat({id:"c"+Date.now().toString(36),n,t:$("ct").value,P:[p],S:s,met:6});saveW();$("cn").value="";fillLists();msg("Exercise saved. You can add it now.")};
 $("theme").onclick=()=>{const d=document.documentElement,dark=d.dataset.theme?d.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches,n=dark?"light":"dark";d.dataset.theme=n;try{localStorage.setItem("ct-theme",n)}catch(e){}refresh()};
 if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener("change",refresh);
-function fillLists(){
- const o=M.map(m=>`<option value="${m}">${MN[m]}</option>`).join("");$("cp").innerHTML=o;$("cs").innerHTML=o}
 
 $("out").onclick=async()=>{try{await fetch(API+"/api/logout",{method:"POST"})}catch(e){}try{localStorage.removeItem("ct1");localStorage.removeItem("wk1");localStorage.removeItem("ct-uid")}catch(e){}toLogin()};
 (async()=>{
