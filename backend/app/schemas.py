@@ -46,6 +46,17 @@ class MuscleSuggestIn(BaseModel):
     name: str = Field(min_length=1, max_length=80)
 
 
+class IngredientLine(BaseModel):
+    """One raw ingredient: how much, and that amount's own calories and macros (not per 100 g)."""
+    name: str = Field(min_length=1, max_length=200)
+    label: str = Field(default="", max_length=200)
+    grams: float = Field(ge=0, le=20000)
+    kcal: float = Field(ge=0, le=20000)
+    protein: float = Field(default=0, ge=0, le=5000)
+    carbs: float = Field(default=0, ge=0, le=5000)
+    fat: float = Field(default=0, ge=0, le=5000)
+
+
 class EntryIn(BaseModel):
     date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
     meal: str = Field(default="Snacks", max_length=20)
@@ -56,6 +67,8 @@ class EntryIn(BaseModel):
     protein: float = Field(default=0, ge=0, le=5000)
     carbs: float = Field(default=0, ge=0, le=5000)
     fat: float = Field(default=0, ge=0, le=5000)
+    # Snapshot of the raw ingredients eaten (recipes). Replaced as a whole on every update.
+    ingredients: list[IngredientLine] | None = Field(default=None, max_length=40)
 
 
 class EntryUpdate(EntryIn):
@@ -73,9 +86,34 @@ class EntryOut(BaseModel):
     protein: float
     carbs: float
     fat: float
+    ingredients: list[IngredientLine] | None = None
     version: int
     updated_at: int
     deleted: bool = False
+
+
+class RecipeIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    portions: float = Field(gt=0, le=100)
+    ingredients: list[IngredientLine] = Field(min_length=1, max_length=40)
+
+
+class RecipeUpdate(RecipeIn):
+    version: int = Field(ge=1)
+
+
+class RecipeOut(BaseModel):
+    """kcal, protein, carbs and fat are per portion."""
+    id: int
+    name: str
+    portions: float
+    kcal: float
+    protein: float
+    carbs: float
+    fat: float
+    ingredients: list[IngredientLine]
+    version: int
+    updated_at: int
 
 
 class DayIn(BaseModel):

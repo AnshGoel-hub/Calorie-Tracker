@@ -60,6 +60,25 @@ class FoodUnit(Base):
     grams: Mapped[float] = mapped_column(Float)
 
 
+class Recipe(Base):
+    """A user's recipe. `ingredients` is a JSON list of raw ingredient lines (name, label, grams and the line's
+    own kcal/macros). kcal/protein/carbs/fat are PER PORTION: the raw total divided by `portions`."""
+    __tablename__ = "recipes"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", **CASCADE), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    name_norm: Mapped[str] = mapped_column(String(200))
+    portions: Mapped[float] = mapped_column(Float, default=1)
+    kcal: Mapped[float] = mapped_column(Float, default=0)
+    protein: Mapped[float] = mapped_column(Float, default=0)
+    carbs: Mapped[float] = mapped_column(Float, default=0)
+    fat: Mapped[float] = mapped_column(Float, default=0)
+    ingredients: Mapped[str] = mapped_column(Text)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    updated_at: Mapped[int] = mapped_column(BigInteger, default=0)
+    __table_args__ = (UniqueConstraint("owner_id", "name_norm", name="uq_recipe_owner_name"),)
+
+
 class FoodEntry(Base):
     __tablename__ = "food_entries"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -74,6 +93,7 @@ class FoodEntry(Base):
     protein: Mapped[float] = mapped_column(Float, default=0)
     carbs: Mapped[float] = mapped_column(Float, default=0)
     fat: Mapped[float] = mapped_column(Float, default=0)
+    ingredients: Mapped[str | None] = mapped_column(Text)  # JSON snapshot of the raw ingredients eaten (recipes)
     version: Mapped[int] = mapped_column(Integer, default=1)
     updated_at: Mapped[int] = mapped_column(BigInteger, default=0)
     deleted_at: Mapped[int | None] = mapped_column(BigInteger)

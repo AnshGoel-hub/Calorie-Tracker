@@ -2,14 +2,14 @@ import json
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.core.db import get_session
 from app.core.security import check_pw, current_user, hash_pw, set_session
-from app.models import LegacyDoc, Usage, User
+from app.models import LegacyDoc, Recipe, Usage, User
 from app.schemas import PasswordChange, PasswordOnly
-from app.services import legacy
+from app.services import legacy, recipes
 
 router = APIRouter(prefix="/api/account", tags=["account"])
 
@@ -38,8 +38,10 @@ def change_password(p: PasswordChange, request: Request, response: Response,
 
 @router.get("/export")
 def export_data(user: User = Depends(current_user), db: Session = Depends(get_session)):
+    mine = db.scalars(select(Recipe).where(Recipe.owner_id == user.id).order_by(Recipe.id)).all()
     doc = {"email": user.email, "exported": datetime.now(UTC).isoformat(),
-           "tracker": legacy.read_tracker(db, user.id), "workouts": legacy.read_workouts(db, user.id)}
+           "tracker": legacy.read_tracker(db, user.id), "workouts": legacy.read_workouts(db, user.id),
+           "recipes": [recipes.to_out(r).model_dump() for r in mine]}
     return Response(json.dumps(doc, indent=1), media_type="application/json",
                     headers={"Content-Disposition": 'attachment; filename="calorie-tracker-export.json"'})
 

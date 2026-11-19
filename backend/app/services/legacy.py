@@ -5,6 +5,8 @@ Writes are snapshot-style: the user's rows are replaced with the submitted docum
 transaction. Food entries and per-day facts can be left out of that replacement (`entries=False`,
 `days=False`) because the frontend saves them one by one through /api/v1. This exists only until the
 frontend has moved everything to the incremental endpoints."""
+import json
+
 from sqlalchemy import delete, insert, select
 from sqlalchemy.orm import Session
 
@@ -28,6 +30,16 @@ def _bulk(db: Session, model, rows: list[dict]) -> None:
         db.execute(insert(model), rows)
 
 
+def _snapshot(raw) -> str | None:
+    """The ingredient snapshot of a recipe entry (`i` in the document). Malformed lines are dropped, not fatal."""
+    if not isinstance(raw, list):
+        return None
+    lines = [{"name": clip(i.get("name"), 200), "label": clip(i.get("label"), 200), "grams": num(i.get("grams")),
+              "kcal": num(i.get("kcal")), "protein": num(i.get("protein")), "carbs": num(i.get("carbs")),
+              "fat": num(i.get("fat"))} for i in raw[:40] if isinstance(i, dict) and i.get("name")]
+    return json.dumps(lines) if lines else None
+
+
 # ------------------------------------------------------------------ tracker document
 def read_tracker(db: Session, uid: int) -> dict:
     p = db.get(Profile, uid)
@@ -36,9 +48,11 @@ def read_tracker(db: Session, uid: int) -> dict:
                          .order_by(FoodEntry.date, FoodEntry.position, FoodEntry.id)).all()
     by_day: dict[str, list] = {}
     for e in entries:
-        by_day.setdefault(e.date.isoformat(), []).append(
-            {"id": e.id, "v": e.version, "n": e.name, "l": e.label, "g": e.grams, "k": e.kcal,
-             "p": e.protein, "c": e.carbs, "f": e.fat, "m": e.meal})
+        row = {"id": e.id, "v": e.version, "n": e.name, "l": e.label, "g": e.grams, "k": e.kcal,
+               "p": e.protein, "c": e.carbs, "f": e.fat, "m": e.meal}
+        if e.ingredients:
+            row["i"] = json.loads(e.ingredients)
+        by_day.setdefault(e.date.isoformat(), []).append(row)
     log, marks, dv = {}, {}, {}
     for d in db.scalars(select(DayLog).where(DayLog.user_id == uid)).all():
         k = d.date.isoformat()
@@ -106,7 +120,8 @@ def write_tracker(db: Session, uid: int, doc: dict, commit: bool = True, entries
             entry_rows.append({"user_id": uid, "date": d, "meal": clip(x.get("m") or "Snacks", 20), "position": i,
                                "name": clip(x.get("n"), 200), "label": clip(x.get("l"), 200),
                                "grams": num(x.get("g")), "kcal": num(x.get("k")), "protein": num(x.get("p")),
-                               "carbs": num(x.get("c")), "fat": num(x.get("f")), "version": 1, "updated_at": ts,
+                               "carbs": num(x.get("c")), "fat": num(x.get("f")),
+                               "ingredients": _snapshot(x.get("i")), "version": 1, "updated_at": ts,
                                "deleted_at": None})
     for k, m in (doc.get("marks") or {}).items():
         d = parse_date(k)

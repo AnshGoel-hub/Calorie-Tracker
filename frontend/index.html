@@ -48,6 +48,7 @@ label{display:block;font-size:12.5px;color:var(--mu);margin:12px 0 4px}
 .tr{display:flex;gap:18px;margin:18px 0 8px;padding:12px 0;border-top:1px solid var(--bd);border-bottom:1px solid var(--bd)}.tr>div{flex:1}.tr label{margin:0 0 4px}
 .ent{display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-top:1px solid var(--bd);font-size:14px}
 .ent small{display:block;color:var(--mu);font-size:12px}.ent button{padding:2px 8px;color:var(--mu);background:transparent;border:none}
+.ing{margin-top:6px;padding-left:10px;border-left:2px solid var(--bd)}.ing .il{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--mu);padding:1px 0}
 .sec{border-top:1px solid var(--bd);margin-top:30px;padding-top:22px}
 .wk{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:28px;align-items:end}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:18px 20px}.stats b{display:block;font-size:24px;font-weight:700;letter-spacing:-.02em;line-height:1.15}.stats span{font-size:12.5px;color:var(--mu)}
@@ -151,7 +152,7 @@ button,a,label,select{touch-action:manipulation}
   </div>
   <button class="pri" id="add" style="width:100%">Add to log</button>
   <button id="cancel" style="display:none;width:100%;margin-top:8px">Cancel edit</button>
-  <details><summary>Food not in the list? Add your own</summary>
+  <details id="cdet"><summary>Food not in the list? Add your own</summary>
    <div id="cnote" class="sub" style="display:none;margin-top:10px"></div>
    <label>Name</label><input id="cn" placeholder="e.g. Homemade laddoo">
    <div class="row"><div><label>kcal /100 g</label><input id="ck" type="number" min="0"></div><div><label>Protein /100 g</label><input id="cp" type="number" min="0"></div></div>
@@ -160,47 +161,58 @@ button,a,label,select{touch-action:manipulation}
    <button id="cadd" style="width:100%;margin-top:10px">Save food</button>
    <div class="sub" style="margin-top:12px">Built-in values are approximate per-100 g figures. Foods estimated by Gemini are marked “est.”.</div>
   </details>
+  <details id="rbdet"><summary>Recipe builder</summary>
+   <div class="sub" style="margin-top:10px">Use raw weights. Calories per portion are the raw ingredient total divided by the number of portions, never the cooked weight.</div>
+   <label for="rb-name">Recipe name</label><input id="rb-name" maxlength="120" placeholder="e.g. My special gravy">
+   <label for="rb-por">Number of portions</label><input id="rb-por" type="number" min="0.5" max="100" step="0.5" value="1">
+   <label for="rb-food">Add an ingredient</label>
+   <div style="position:relative">
+    <input id="rb-food" placeholder="e.g. Tomato, Cooking oil, Soya chunks" autocomplete="off">
+    <div id="rb-sug" style="position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--bd);border-radius:0 0 6px 6px;max-height:180px;overflow-y:auto;z-index:10;display:none;box-shadow:0 6px 16px rgba(0,0,0,.12)"></div>
+   </div>
+   <div class="row"><div><label for="rb-unit">Unit</label><select id="rb-unit"><option value="g">grams</option></select></div><div><label for="rb-qty">Quantity</label><input id="rb-qty" type="number" min="0" step="any" inputmode="decimal"></div></div>
+   <button id="rb-add" type="button" style="width:100%;margin-top:8px">Add ingredient</button>
+   <div id="rb-rows" style="margin-top:8px"></div>
+   <div class="pv" id="rb-tot">No ingredients yet.</div>
+   <button class="pri" id="rb-save" type="button" style="width:100%">Save recipe</button>
+   <button id="rb-cancel" type="button" style="display:none;width:100%;margin-top:8px">Cancel edit</button>
+   <div class="sub" id="rb-msg" role="status" style="margin-top:8px"></div>
+   <h3 style="margin-top:16px">Your recipes</h3>
+   <div id="rb-list"></div>
+  </details>
  </section>
 </main>
 
 </div>
 
 <script>
-const FOODS=[
-["Roti / chapati",297,9.8,46,7.5,"piece",30,30,30],
-["Plain rice (cooked)",130,2.7,28,.3,"bowl",120,180,260],
-["Dal (cooked)",105,6.5,14,2.5,"bowl",100,150,220],["Rajma (cooked)",125,6.5,18,2.5,"bowl",100,150,220],
-["Chole (cooked)",164,8,24,4.5,"bowl",100,150,220],["Mixed veg sabzi",90,2.5,10,4.5,"bowl",80,130,200],
-["Paneer",265,18,3.5,20,"serving",50,80,120],["Paneer curry",180,8,6,14,"bowl",100,150,220],
-["Aloo paratha",260,6,36,10,"piece",60,90,120],["Idli",130,4,27,.5,"piece",30,40,50],
-["Dosa (plain)",168,3.9,29,3.7,"piece",60,90,120],["Poha",130,2.5,25,2.5,"plate",120,180,250],
-["Upma",130,3,20,4,"plate",120,180,250],["Maggi (cooked)",140,3,19,5.5,"plate",150,250,350],
-["Samosa",262,3.5,24,17,"piece",50,80,100],["Bread (white)",265,9,49,3.2,"slice",25,30,35],
-["Milk (full cream)",62,3.2,4.8,3.3,"glass",150,200,250],["Curd / dahi",60,3.5,4.7,3.3,"bowl",80,120,200],
-["Banana",89,1.1,23,.3,"piece",80,110,140],["Apple",52,.3,14,.2,"piece",130,180,230],
-["Oats (dry)",389,16.9,66,6.9,"serving",30,40,50],["Peanut butter",588,25,20,50,"spoon",10,16,25],
-["Almonds",579,21,22,50,"handful",10,20,30],["Kurkure",535,6,58,31,"pack",25,40,90],
-["Cadbury Gems",490,4.5,75,19,"pack",10,20,40],["Dairy Milk chocolate",534,7.3,57,30,"bar",13,25,50],
-["Potato chips",540,6.5,53,34,"pack",28,52,100],["Biscuits (Parle-G type)",450,7,76,12.5,"serving",20,40,60],
-["Cream biscuit (Oreo type)",480,4.5,70,20,"biscuit",11,11,11],["Toffee / candy",400,1,85,6,"toffee",4,4,4],
-["Pizza",266,11,33,10,"slice",80,110,140],["French fries",312,3.4,41,15,"serving",70,110,150],
-["Cold drink (cola)",42,0,10.6,0,"glass",200,300,500],["Tea with milk and sugar",40,1,6,1.5,"cup",100,150,200],
-["Ghee",900,0,0,100,"spoon",5,10,15],["Salad",20,1,4,.2,"bowl",50,100,150],
-["Gulab jamun",300,4,50,10,"piece",30,45,60],["Ice cream",207,3.5,24,11,"scoop",50,70,100]];
-
 if(location.hash==="#calendar")location.replace("/calendar");
 if(location.hash==="#trends")location.replace("/progress");
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const iso=d=>d.toLocaleDateString("en-CA");
 const R=n=>Math.round(n).toLocaleString("en-IN");
+const n1=v=>Math.round(v*10)/10;
 const qd=new URLSearchParams(location.search).get("d");let today=iso(new Date()),cur=/^\d{4}-\d{2}-\d{2}$/.test(qd||"")?qd:today,range=7,mode="size",ch=[],sugIdx=-1,editIdx=null,editDay=null;
 const API="";
 const toLogin=()=>{location.href="/login"};
 const MK={rest:"Rest day",sick:"Sick",rain:"Rain",exam:"Exam",travel:"Travel",busy:"Busy",other:"Other"};
+const OPEN=new Set();   // entries whose ingredient list is expanded
+
+// ---- built-in catalogue (served by the backend) and the user's recipes
+const CAT_KEY="ct-cat";
+let CAT=[],RC=[];
+const catP=(async()=>{
+ try{const r=await fetch(API+"/api/v1/foods");if(r.status===401){toLogin();return}if(!r.ok)throw 0;
+  CAT=(await r.json()).foods||[];try{localStorage.setItem(CAT_KEY,JSON.stringify(CAT))}catch(e){}}
+ catch(e){try{CAT=JSON.parse(localStorage.getItem(CAT_KEY)||"[]")}catch(x){CAT=[]}}   // offline: last copy we saw
+})();
+async function loadRecipes(){
+ try{const r=await fetch(API+"/api/v1/recipes");if(r.status===401){toLogin();return}if(r.ok)RC=await r.json()}catch(e){}}
+const rcP=loadRecipes();
 
 // ---- food entries live on the server (/api/v1/entries); each has an id and a version
-const E_API=API+"/api/v1/entries";
+const E_API=API+"/api/v1/entries",R_API=API+"/api/v1/recipes";
 let inflight=0;   // requests still being saved; background refreshes wait for 0
 async function ev(method,url,body){
  inflight++;
@@ -209,8 +221,8 @@ async function ev(method,url,body){
   if(r.status===401){toLogin();throw "auth"}
   return r
  }finally{inflight--}}
-const toBody=(date,x)=>({date,meal:x.m||"Snacks",name:x.n,label:x.l||"",grams:x.g,kcal:x.k,protein:x.p,carbs:x.c,fat:x.f});
-const fromOut=o=>({id:o.id,v:o.version,n:o.name,l:o.label,g:o.grams,k:o.kcal,p:o.protein,c:o.carbs,f:o.fat,m:o.meal});
+const toBody=(date,x)=>({date,meal:x.m||"Snacks",name:x.n,label:x.l||"",grams:x.g,kcal:x.k,protein:x.p,carbs:x.c,fat:x.f,ingredients:x.i||null});
+const fromOut=o=>({id:o.id,v:o.version,n:o.name,l:o.label,g:o.grams,k:o.kcal,p:o.protein,c:o.carbs,f:o.fat,m:o.meal,i:o.ingredients||undefined});
 // Entries and day facts (water, weight, markers, per-day target) are owned by the server
 function takeServerState(s,data){s.log=data.log||{};s.marks=data.marks||{};s.dv=data.dv||{}}
 async function refreshFromServer(){
@@ -232,28 +244,42 @@ function saveDay(k){
  }).catch(e=>{if(e!=="auth")$("pv").textContent="Couldn’t save that change. Check your connection and try again."}).finally(()=>{inflight--});
  return dq[k]}
 
-// Counted items get one unit (qty = how many); bowls/plates/glasses/packs get small/medium/large; spoons get tsp/tbsp.
+// Old custom foods saved without units get them here: counted items one unit, bowls/plates/glasses/packs small/medium/large.
 const COUNT=new Set(["piece","slice","egg","scoop","cup","biscuit","toffee"]);
 const SZ=["small ","medium ","large "];
 const OV={"Ghee":[["tsp",5],["tbsp",14]],"Peanut butter":[["tsp",5],["tbsp",16]],"Almonds":[["almond",1.2],["handful",20]],"Biscuits (Parle-G type)":[["biscuit",5]]};
 const mkUnits=(n,u,g)=>OV[n]?OV[n].map(([a,b])=>({n:a,g:b})):COUNT.has(u)?[{n:u,g:g[1]}]:g.map((v,i)=>({n:SZ[i]+u,g:v}));
-const all=()=>FOODS.map(a=>({n:a[0],k:a[1],p:a[2],c:a[3],f:a[4],units:mkUnits(a[0],a[5],[a[6],a[7],a[8]])})).concat(S.custom.map(x=>x.units?x:{...x,units:mkUnits(x.n,x.u||"serving",x.g||[60,100,160])}));
+const customFoods=()=>S.custom.map(x=>x.units?x:{...x,units:mkUnits(x.n,x.u||"serving",x.g||[60,100,160])});
+// A recipe behaves like a food whose nutrition is per PORTION (k/p/c/f), with one unit, "portion".
+const rcFood=r=>({n:r.name,recipe:r.id,portions:r.portions,lines:r.ingredients,k:r.kcal,p:r.protein,c:r.carbs,f:r.fat,units:[{n:"portion",g:0}]});
+const all=()=>CAT.concat(customFoods()).concat(RC.map(rcFood));
 const find=n=>all().find(x=>x.n.toLowerCase()===String(n).trim().toLowerCase());
 // A day counts as over target only above target + 5%
 const MARGIN=1.05,isOver=(k,t)=>k>t*MARGIN;
 const isRec=d=>!!d&&((d.e&&d.e.length>0)||d.w>0||d.wt!=null);
 const tot=e=>e.reduce((a,x)=>({k:a.k+x.k,p:a.p+x.p,c:a.c+x.c,f:a.f+x.f}),{k:0,p:0,c:0,f:0});
 
+function setMode(m){
+ mode=m;const r=document.querySelector('input[name="m"][value="'+m+'"]');if(r)r.checked=true;
+ $("bsize").style.display=m==="size"?"flex":"none";$("bg").style.display=m==="g"?"block":"none"}
 function sizes(){
  const x=find($("food").value),sel=$("size");
  if(!x){sel.innerHTML='<option value="0">Pick a food first</option>';sel.disabled=true;sizes.f="";return}
+ if(x.recipe&&mode!=="size")setMode("size");   // recipes are logged by portion, never by grams
  const us=x.units,same=sizes.f===x.n,keep=same?sel.value:(us.length===3&&us[0].n.startsWith("small")?"1":"0");
  sel.disabled=false;
- sel.innerHTML=us.map((o,i)=>'<option value="'+i+'">'+esc(o.n)+" ("+o.g+" g)</option>").join("");
+ sel.innerHTML=us.map((o,i)=>'<option value="'+i+'">'+esc(o.n)+(o.g?" ("+o.g+" g)":"")+"</option>").join("");
  sel.value=keep;sizes.f=x.n;
 }
 function calc(){
- const x=find($("food").value);if(!x)return null;let g,lab;
+ const x=find($("food").value);if(!x)return null;
+ if(x.recipe){
+  // One entry for the whole recipe. Calories are per portion (raw total / portions) times how many you ate.
+  const q=+$("qty").value;if(!(q>0))return null;
+  const sc=q/x.portions;
+  return{n:x.n,l:q===1?"1 portion":q+" portions",g:0,k:x.k*q,p:x.p*q,c:x.c*q,f:x.f*q,m:$("meal").value,
+   i:x.lines.map(z=>({name:z.name,label:"",grams:n1(z.grams*sc),kcal:n1(z.kcal*sc),protein:n1(z.protein*sc),carbs:n1(z.carbs*sc),fat:n1(z.fat*sc)}))}}
+ let g,lab;
  if(mode==="size"){const un=x.units[+$("size").value]||x.units[0],q=+$("qty").value||1;g=un.g*q;lab=q+" × "+un.n}
  else{g=+$("grams").value;lab=g+" g"}
  if(!(g>0))return null;const m=g/100;
@@ -261,9 +287,12 @@ function calc(){
 }
 function preview(){
  const r=calc();
- $("pv").textContent=r?"≈ "+r.g+" g · "+R(r.k)+" kcal · P "+r.p.toFixed(1)+" g · C "+r.c.toFixed(1)+" g · F "+r.f.toFixed(1)+" g":(find($("food").value)?"Enter a quantity to see nutrition.":($("food").value.trim()?"Not in the list. Gemini can estimate it for you.":"Pick a food from the list, or type any food to get an estimate."));
+ $("pv").textContent=r?(r.g?"≈ "+r.g+" g":"≈ "+r.l)+" · "+R(r.k)+" kcal · P "+r.p.toFixed(1)+" g · C "+r.c.toFixed(1)+" g · F "+r.f.toFixed(1)+" g":(find($("food").value)?"Enter a quantity to see nutrition.":($("food").value.trim()?"Not in the list. Gemini can estimate it for you.":"Pick a food from the list, or type any food to get an estimate."));
  const unk=!find($("food").value)&&$("food").value.trim();$("lookbox").style.display=unk?"block":"none";
 }
+
+const ingHtml=list=>'<div class="ing"><div class="il"><span>Raw ingredients in this entry</span></div>'+list.map(z=>'<div class="il"><span>'+esc(z.name)+" · "+n1(z.grams)+' g</span><span>'+R(z.kcal)+" kcal</span></div>").join("")+"</div>";
+function tog(i){const x=S.log[cur]&&S.log[cur].e[i];if(!x)return;OPEN.has(x.id)?OPEN.delete(x.id):OPEN.add(x.id);render()}
 
 function render(){
  if(editIdx!==null&&editDay!==cur)endEdit();
@@ -290,14 +319,16 @@ function render(){
  
  $("ents").innerHTML = Object.keys(meals).map(m => {
    if(!meals[m].length) return "";
-   return `<h3 style="margin-top:14px; margin-bottom:4px">${m}</h3>` + meals[m].map(({x, i}) => 
-     `<div class="ent">
-       <div>${esc(x.n)}<small>${esc(x.l)} · ${x.g} g · P ${x.p.toFixed(1)} C ${x.c.toFixed(1)} F ${x.f.toFixed(1)}</small></div>
+   return `<h3 style="margin-top:14px; margin-bottom:4px">${m}</h3>` + meals[m].map(({x, i}) => {
+     const rc=x.i&&x.i.length,open=rc&&OPEN.has(x.id);
+     return `<div class="ent">
+       <div style="min-width:0">${esc(x.n)}<small>${esc(x.l)}${x.g?" · "+x.g+" g":""} · P ${x.p.toFixed(1)} C ${x.c.toFixed(1)} F ${x.f.toFixed(1)}</small>${open?ingHtml(x.i):""}</div>
        <div style="white-space:nowrap">${R(x.k)} kcal 
-         <button onclick="edit(${i})" aria-label="Edit" style="margin-left:4px;cursor:pointer">✎</button>
+         ${rc?`<button onclick="tog(${i})" aria-label="${open?"Hide":"Show"} ingredients" aria-expanded="${open}" style="margin-left:4px;cursor:pointer">${open?"▴":"▾"}</button>`
+              :`<button onclick="edit(${i})" aria-label="Edit" style="margin-left:4px;cursor:pointer">✎</button>`}
          <button onclick="del(${i})" aria-label="Remove" style="cursor:pointer">✕</button>
        </div>
-     </div>`
+     </div>`}
    ).join("");
  }).join("");
 
@@ -312,12 +343,11 @@ function showWelcome(){
 function endEdit(){editIdx=null;editDay=null;$("add").textContent="Add to log";$("cancel").style.display="none"}
 window.edit = function(i) {
   const item = S.log[cur].e[i];
+  if(item.i&&item.i.length)return;   // recipe entries are deleted and logged again
   editIdx = i; editDay = cur;
   $("food").value = item.n;
   $("meal").value = item.m || "Snacks";
-  mode = "g";
-  document.querySelector('input[name="m"][value="g"]').checked = true;
-  $("bsize").style.display = "none"; $("bg").style.display = "block";
+  setMode("g");
   $("grams").value = item.g;
   sizes(); preview();
   $("add").textContent = "Save changes"; $("cancel").style.display = "block";
@@ -355,7 +385,7 @@ $("food").addEventListener("input", function() {
       sug.style.display = "block";
       matches.forEach(m => {
         const div = document.createElement("div");
-        div.textContent = m.n + (m.est ? "  · est." : "");
+        div.textContent = m.n + (m.est ? "  · est." : "") + (m.recipe ? "  · recipe" : "") + (m.raw ? "  · raw" : "");
         div.style.cssText = "padding:12px 10px; cursor:pointer; border-bottom:1px solid var(--bd); font-size:14px;";
         div.onmouseover = () => div.style.background = "var(--bg)";
         div.onmouseout = () => div.style.background = "";
@@ -382,13 +412,12 @@ $("food").addEventListener("keydown",e=>{
   else if(e.key==="Escape"){sug.style.display="none";sugIdx=-1}
 });
 document.addEventListener("click", e => {
-  if (e.target !== $("food")) {
-      const sug = $("sug");
-      if (sug) sug.style.display = "none";
-  }
+  if (e.target !== $("food")) $("sug").style.display = "none";
+  if (e.target !== $("rb-food")) $("rb-sug").style.display = "none";
 });
 ["size","qty","grams"].forEach(id=>$(id).addEventListener("input",preview));
-document.querySelectorAll('input[name="m"]').forEach(r=>r.addEventListener("change",e=>{mode=e.target.value;$("bsize").style.display=mode==="size"?"flex":"none";$("bg").style.display=mode==="g"?"block":"none";preview()}));
+document.querySelectorAll('input[name="m"]').forEach(r=>r.addEventListener("change",e=>{
+ const x=find($("food").value);setMode(x&&x.recipe?"size":e.target.value);preview()}));
 
 const KL={cooked:"home-cooked",fruit:"fruit",packaged:"packaged",restaurant:"restaurant",recipe:"homemade"};
 let pendingEst=null;
@@ -428,7 +457,7 @@ async function lookup(){
    $("cn").value=name;$("ck").value=j.kcal;$("cp").value=j.protein;$("cc").value=j.carbs;$("cf").value=j.fat;
    $("cu").value=j.units.map(u=>u.name+":"+u.grams).join(", ");
    pendingEst=kind;$("ing").value="";
-   const d=document.querySelector("details");d.open=true;
+   const d=$("cdet");d.open=true;
    $("cnote").style.display="block";
    $("cnote").textContent="Estimated by Gemini as a "+KL[kind]+" food"+(j.cached?" (from the shared cache)":"")+". These numbers are approximate. Check them, fix anything that looks off, then press Save food."+(j.warning?" Note: "+j.warning+".":"");
    $("pv").textContent="Estimate ready. Review it under “Add your own”, save it, then add it to your log.";
@@ -469,6 +498,7 @@ $("cadd").onclick=()=>{
  const n=$("cn").value.trim(),v=id=>$(id).value===""?NaN:+$(id).value;
  const k=v("ck"),p=+$("cp").value||0,c=+$("cc").value||0,f=+$("cf").value||0,us=parseUnits($("cu").value||"serving:100");
  if(!n||!Number.isFinite(k)){$("pv").textContent="Give the new food a name and at least its kcal per 100 g.";return}
+ if(RC.some(x=>x.name.toLowerCase()===n.toLowerCase())){$("pv").textContent="You already have a recipe called “"+n+"”. Pick a different name.";return}
  const a=chk(k,p,c,f);if(a.err){$("pv").textContent=a.err;return}
  const ue=chkUnits(us,k);if(ue){$("pv").textContent=ue+" Use the format name:grams, for example piece:40.";return}
  S.custom=S.custom.filter(x=>x.n.toLowerCase()!==n.toLowerCase());
@@ -477,6 +507,92 @@ $("cadd").onclick=()=>{
  save();$("food").value=n;sizes();preview();["cn","ck","cp","cc","cf","cu"].forEach(id=>$(id).value="");
  if(a.warn)$("pv").textContent="Saved, but "+a.warn+" Double-check the values.";
 };
+
+// ---- recipe builder: raw ingredients in, per-portion nutrition out
+// rows hold per-100 g values of the food plus the raw grams used; lines sent to the server are that amount's own totals.
+const RB={id:null,ver:0,rows:[]};
+const rbMsg=(t,ok)=>{const e=$("rb-msg");e.textContent=t;e.style.color=ok?"var(--wt)":"var(--bad)"};
+const rbFoods=()=>CAT.concat(customFoods());
+const rbFind=n=>rbFoods().find(x=>x.n.toLowerCase()===String(n).trim().toLowerCase());
+function rbUnits(){
+ const x=rbFind($("rb-food").value),sel=$("rb-unit");
+ sel.innerHTML='<option value="g">grams</option>'+(x?x.units.map((o,i)=>'<option value="'+i+'">'+esc(o.n)+" ("+o.g+" g)</option>").join(""):"");
+ sel.value="g"}
+function rbTotals(){
+ const t=RB.rows.reduce((a,r)=>({k:a.k+r.k*r.g/100,p:a.p+r.p*r.g/100,c:a.c+r.c*r.g/100,f:a.f+r.f*r.g/100}),{k:0,p:0,c:0,f:0});
+ const por=+$("rb-por").value||0;
+ return{t,por,pp:por>0?{k:t.k/por,p:t.p/por,c:t.c/por,f:t.f/por}:null}}
+function rbDraw(){
+ $("rb-rows").innerHTML=RB.rows.map((r,i)=>'<div class="ent"><div style="min-width:0">'+esc(r.n)+"<small>"+esc(r.l)+" · "+n1(r.g)+" g raw · "+R(r.k*r.g/100)+' kcal</small></div><button type="button" onclick="rbRm('+i+')" aria-label="Remove ingredient">✕</button></div>').join("");
+ const T=rbTotals();
+ $("rb-tot").textContent=!RB.rows.length?"No ingredients yet.":"Raw total "+R(T.t.k)+" kcal"+(T.pp?" ÷ "+T.por+" portion"+(T.por===1?"":"s")+" = "+R(T.pp.k)+" kcal per portion · P "+T.pp.p.toFixed(1)+" g · C "+T.pp.c.toFixed(1)+" g · F "+T.pp.f.toFixed(1)+" g":". Enter the number of portions.")}
+function rbRm(i){RB.rows.splice(i,1);rbDraw()}
+function rbAdd(){
+ const x=rbFind($("rb-food").value);
+ if(!x){rbMsg("Pick an ingredient from the list. Your own foods work too (add them under “Food not in the list”).");return}
+ const q=+$("rb-qty").value,u=$("rb-unit").value;
+ if(!(q>0)){rbMsg("Enter a quantity.");return}
+ const un=u==="g"?null:x.units[+u],g=un?un.g*q:q;
+ if(!(g>=0.5&&g<=20000)){rbMsg("That weight looks wrong. Use 0.5 g to 20 kg.");return}
+ if(RB.rows.length>=40){rbMsg("A recipe can have up to 40 ingredients.");return}
+ RB.rows.push({n:x.n,k:x.k,p:x.p,c:x.c,f:x.f,g:n1(g),l:un?q+" × "+un.n:n1(g)+" g"});
+ $("rb-food").value="";$("rb-qty").value="";rbUnits();rbMsg("");rbDraw();$("rb-food").focus()}
+function rbReset(){
+ RB.id=null;RB.ver=0;RB.rows=[];$("rb-name").value="";$("rb-por").value=1;
+ $("rb-save").textContent="Save recipe";$("rb-cancel").style.display="none";rbDraw()}
+function rbList(){
+ $("rb-list").innerHTML=RC.length?RC.map(r=>'<div class="ent"><div style="min-width:0">'+esc(r.name)+"<small>"+r.portions+" portion"+(r.portions===1?"":"s")+" · "+R(r.kcal)+" kcal each · P "+r.protein.toFixed(1)+" C "+r.carbs.toFixed(1)+" F "+r.fat.toFixed(1)+" · "+r.ingredients.length+' ingredients</small></div><div style="white-space:nowrap"><button type="button" onclick="rbEdit('+r.id+')" aria-label="Edit recipe">✎</button><button type="button" onclick="rbDel('+r.id+')" aria-label="Delete recipe">✕</button></div></div>').join(""):'<div class="sub">No recipes yet.</div>'}
+function rbEdit(id){
+ const r=RC.find(x=>x.id===id);if(!r)return;
+ RB.id=r.id;RB.ver=r.version;
+ RB.rows=r.ingredients.map(x=>{const q=x.grams>0?100/x.grams:0;return{n:x.name,k:x.kcal*q,p:x.protein*q,c:x.carbs*q,f:x.fat*q,g:x.grams,l:x.label||n1(x.grams)+" g"}});
+ $("rb-name").value=r.name;$("rb-por").value=r.portions;
+ $("rb-save").textContent="Save changes";$("rb-cancel").style.display="block";
+ $("rbdet").open=true;rbDraw();rbMsg("");$("rb-name").focus()}
+async function rbSave(){
+ const name=$("rb-name").value.trim(),por=+$("rb-por").value;
+ if(!name){rbMsg("Give the recipe a name.");return}
+ if(!(por>0&&por<=100)){rbMsg("Portions must be more than 0 and at most 100.");return}
+ if(!RB.rows.length){rbMsg("Add at least one ingredient.");return}
+ const clash=all().find(x=>x.n.toLowerCase()===name.toLowerCase()&&!(x.recipe&&x.recipe===RB.id));
+ if(clash){rbMsg("“"+clash.n+"” is already in your food list. Pick a different recipe name.");return}
+ const body={name,portions:por,ingredients:RB.rows.map(r=>({name:r.n,label:r.l,grams:r.g,kcal:+(r.k*r.g/100).toFixed(2),protein:+(r.p*r.g/100).toFixed(2),carbs:+(r.c*r.g/100).toFixed(2),fat:+(r.f*r.g/100).toFixed(2)}))};
+ $("rb-save").disabled=true;
+ try{
+  const res=RB.id?await ev("PUT",R_API+"/"+RB.id,{...body,version:RB.ver}):await ev("POST",R_API,body);
+  const j=await res.json().catch(()=>({}));
+  if(!res.ok){
+   const d=j.detail;
+   if(res.status===409&&d&&d.current){await loadRecipes();rbList();rbMsg("This recipe changed on another device. The latest copy was loaded, so open it again to edit.")}
+   else rbMsg(typeof d==="string"?d:(res.status===422?"Check the name, portions and quantities.":"Couldn’t save the recipe."));
+   return}
+  await loadRecipes();rbReset();rbList();sizes();preview();
+  rbMsg("Saved “"+j.name+"”: "+R(j.kcal)+" kcal per portion. Search for it under Add food to log it.",true)}
+ catch(e){if(e!=="auth")rbMsg("Couldn’t reach the server.")}
+ finally{$("rb-save").disabled=false}}
+async function rbDel(id){
+ const r=RC.find(x=>x.id===id);
+ if(!r||!confirm("Delete the recipe “"+r.name+"”? Days where you already logged it keep their ingredients."))return;
+ try{const res=await ev("DELETE",R_API+"/"+id);if(!res.ok&&res.status!==404)throw 0;
+  if(RB.id===id)rbReset();await loadRecipes();rbList();sizes();preview();render()}
+ catch(e){if(e!=="auth")rbMsg("Couldn’t delete the recipe. Try again.")}}
+$("rb-food").addEventListener("input",function(){
+ const v=this.value.trim().toLowerCase(),box=$("rb-sug");box.innerHTML="";rbUnits();
+ if(!v){box.style.display="none";return}
+ const ms=rbFoods().filter(x=>x.n.toLowerCase().includes(v)).sort((a,b)=>(b.raw?1:0)-(a.raw?1:0)).slice(0,12);
+ if(!ms.length){box.style.display="none";return}
+ box.style.display="block";
+ ms.forEach(m=>{const d=document.createElement("div");
+  d.textContent=m.n+(m.raw?"  · raw":"");
+  d.style.cssText="padding:12px 10px; cursor:pointer; border-bottom:1px solid var(--bd); font-size:14px;";
+  d.onmouseover=()=>d.style.background="var(--bg)";d.onmouseout=()=>d.style.background="";
+  d.onclick=()=>{$("rb-food").value=m.n;box.style.display="none";rbUnits();$("rb-qty").focus()};
+  box.appendChild(d)})});
+$("rb-qty").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();rbAdd()}});
+$("rb-por").addEventListener("input",rbDraw);
+$("rb-add").onclick=rbAdd;$("rb-save").onclick=rbSave;
+$("rb-cancel").onclick=()=>{rbReset();rbMsg("")};
+
 $("tg").onchange=()=>{const v=+$("tg").value;if(v>0){S.target=v;if(S.log[cur]){S.log[cur].t=v;saveDay(cur)}save();render()}};
 $("wl-save").onclick=()=>{
  const t=+$("wl-tg").value,w=parseFloat($("wl-wt").value);
@@ -526,12 +642,13 @@ const save=()=>{
   }).then(r=>{if(r.status===401)toLogin()}).catch(e => console.log("Backend offline, saved locally"));
 };
 
-function initUI() { sizes();preview();render(); }
+// The catalogue and recipes load in parallel with the user's data; draw once all three are in.
+function initUI() { Promise.all([catP,rcP]).then(()=>{sizes();preview();render();rbUnits();rbList();rbDraw()}); }
 const DEFAULTS={log:{},custom:[],target:2000,updated:0,setup:false,profile:{},marks:{},goals:{}};
 let localCopy=null;
 try{localCopy=JSON.parse(localStorage.getItem("ct1")||"null")}catch(e){}
 
-$("out").onclick=async()=>{try{await fetch(API+"/api/logout",{method:"POST"})}catch(e){}try{localStorage.removeItem("ct1");localStorage.removeItem("wk1");localStorage.removeItem("ct-uid")}catch(e){}toLogin()};
+$("out").onclick=async()=>{try{await fetch(API+"/api/logout",{method:"POST"})}catch(e){}try{localStorage.removeItem("ct1");localStorage.removeItem("wk1");localStorage.removeItem("ct-uid");localStorage.removeItem(CAT_KEY)}catch(e){}toLogin()};
 fetch(API+"/api/data")
   .then(res => {if(res.status===401){toLogin();throw "auth"}return res.json()})
   .then(data => {
